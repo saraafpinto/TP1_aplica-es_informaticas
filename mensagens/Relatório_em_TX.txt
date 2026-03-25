@@ -1,0 +1,21 @@
+MSH|^~\&|PACS|PACS|AIDA|AIDA|20150411191108||ORU^R01|bcba45df-­‐ 2585-­‐4756-­‐ae6a-­‐cecb61a83e14|P|2.5
+PID|||132103||CONCEICAO BARROS^MARIA||19650529|F
+ORC|RE|150502217201|8200000000304151||CM|||||||^|||||||||^||||
+OBR|1|150502217201^AIDA|8200000000304151|^|||||||||Observa\E\X E7\E\\E\XF5\E\es: Registo directo sem pedido
+(10854) -­‐ |||^||||||20150603012318|||F|||||||Joaquim Silva^^^||||
+OBX|1|TX|||TAC TORÁCICO||||||F|||20150603012318|||||
+OBX|2|TX|||___||||||F|||20150603012318|||||
+OBX|3|TX|||||||||F|||20150603012318||||| OBX|4|TX|||||||||F|||20150603012318|||||
+OBX|5|TX|||RELATÓRIO:||||||F|||20150603012318|||||
+OBX|6|TX|||||||||F|||20150603012318|||||
+OBX|7|TX|||O estudo efectuado foi comparado com exame de 2014, não se verificando alterações significa,vas con,nuando a
+registar-­‐se uma marcada alteração da estrutura inters,cial com um padrão em “favo de mel” difuso.||||||F|||
+20150603012318|||||
+OBX|8|TX|||Não há imagens suges,vas de processos neoforma,vos.||||||F|||20150603012318|||||
+OBX|9|TX|||Con,nuam a iden,ficar-­‐se as estruturas ganglionares de eixo curto infra e pericen,métricas em
+pra,camente todos os compar,mentos mediaspnicos visualizados.||||||F|||20150603012318|||||
+OBX|10|TX|||Traqueia e brônquios principais permeáveis.||||||F|||20150603012318|||||
+OBX|11|TX|||Ausência de derrame pleural/pericárdico.||||||F|||20150603012318|||||
+OBX|12|TX|||Espessamento pleural bibasal.||||||F|||20150603012318|||||
+OBX|13|TX|||||||||F|||20150603012318|||||
+OBX|14|TX|||Relatório validado por: Joaquim Silva ||||||F|||20150603012318|||||
