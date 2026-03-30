@@ -1,0 +1,5 @@
+MSH|^~\&|{emissor}|{emissor}|{recetor}|{recetor}|{data_hoje}||ORM^O01|{msg_id}|P|2.5|||AL|
+PID|||{id_paciente}||{nome_paciente}||{data_nasc}|{sexo}||||||||||{nif}|
+PV1||I|INT||||||||||||||||{id_episodio}|
+ORC|{acao}|{id_pedido}|{id_pedido}||||||{data_pedido}|
+OBR|01|{id_pedido}|{id_pedido}|{cod_exame}^{desc_exame}|||||||||||^^^|||CR|RXE||||||{extra_obr}^^^{data_hoje}^^0|||||

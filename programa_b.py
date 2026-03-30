@@ -1,5 +1,7 @@
 import socket
 from datetime import datetime
+import random
+import time
 
 #===============================
 #CONFIGURAÇÃO DO SERVIDOR LOCAL
@@ -103,6 +105,90 @@ def criar_relatorio_hl7(pid, nome, exame):
         f"OBX|1|TX|RESULTADO||Exame realizado com sucesso. Valores dentro da normalidade. |N\r"
     )
 
+def processar_pedido_hl7(mensagem):
+    linhas = mensagem.strip().split("\r")
+    dados = {
+        "acao": "", "pid": "", "nome": "", "nasc": "", "sexo": "", 
+        "nif": "", "tipo_pac": "", "setor": "", "episodio": "", 
+        "id_pedido": "", "cod_exame": "", "desc_exame": ""
+    }
+
+    for linha in linhas:
+        if linha.startswith("PID"):
+            dados["pid"] = extrair_campo(linha, 3)
+            dados["nome"] = extrair_campo(linha, 5)
+            dados["nasc"] = extrair_campo(linha, 7)
+            dados["sexo"] = extrair_campo(linha, 8)
+            dados["nif"] = extrair_campo(linha, 19)
+        elif linha.startswith("PV1"):
+            dados["tipo_pac"] = extrair_campo(linha, 2)
+            dados["setor"] = extrair_campo(linha, 3)
+            dados["episodio"] = extrair_campo(linha, 19)
+        elif linha.startswith("ORC"):
+            dados["acao"] = extrair_campo(linha, 1) # NW ou CA [cite: 46, 52]
+            dados["id_pedido"] = extrair_campo(linha, 2)
+        elif linha.startswith("OBR"):
+            exame_full = extrair_campo(linha, 4).split("^")
+            dados["cod_exame"] = exame_full[0]
+            dados["desc_exame"] = exame_full[1] if len(exame_full) > 1 else ""
+
+    return dados
+
+def gerar_resposta_orm_B(fluxo, dados):
+    """
+    fluxo: 'confirmar_cancelamento' (CA) ou 'exame_finalizado' (SC/CM)
+    dados: dicionário com a info extraída do pedido original
+    """
+    emissor, recetor = "PACS", "AIDA"
+    data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
+    
+    # Configuração dinâmica baseada no que queremos dizer ao Programa A
+    if fluxo == 'confirmar_cancelamento':
+        acao = "CA"   # Cancel Order
+        estado = ""   # No cancelamento o ORC-5 costuma ir vazio ou repetir CA
+        prefixo = "B_CONF_"
+    elif fluxo == 'exame_finalizado':
+        acao = "SC"   # Status Change
+        estado = "CM" # Completed
+        prefixo = "B_STAT_"
+    else:
+        return "Erro: Fluxo de resposta inválido."
+
+    msg_id = f"{prefixo}{data_atual}{random.randint(10, 99)}"
+
+    # Usar o template comum 'mensagens/Pedido.txt'
+    try:
+        with open('mensagens/Pedido.txt', 'r', encoding='utf-8') as f:
+            template = f.read()
+    except FileNotFoundError:
+        return "Erro: Ficheiro mensagens/Pedido.txt não encontrado."
+
+    # Preencher o template
+    # Nota: No template, o campo ORC deve estar assim: ORC|{acao}|{id_pedido}|{id_pedido}||{estado}||||{data_hoje}|
+    mensagem_final = template.format(
+        emissor=emissor,
+        recetor=recetor,
+        data_hoje=data_atual,
+        msg_id=msg_id,
+        id_paciente=dados["pid"],
+        nome_paciente=dados["nome"],
+        data_nasc=dados["nasc"],
+        sexo=dados["sexo"],
+        nif=dados["nif"],
+        tipo_paciente=dados["tipo_pac"],
+        setor=dados["setor"],
+        id_episodio=dados["episodio"],
+        acao=acao,
+        estado=estado, # Precisas de adicionar {estado} no teu ficheiro .txt
+        id_pedido=dados["id_pedido"],
+        data_pedido=data_atual,
+        cod_exame=dados["cod_exame"],
+        desc_exame=dados["desc_exame"],
+        extra_obr="|"
+    )
+
+    return mensagem_final
+
 #==============================================
 # FUNCAO PARA ENVIAR RELATÓRIO para o mirth
 #==============================================
@@ -138,39 +224,73 @@ def iniciar_programa_b():
 
         print(f"Programa B à escuta na porta {PORTA_RECEBER_PEDIDO}...")
 
-        conn,addr = servidor.accept()
+        while True:
+            conn,addr = servidor.accept()
 
-        with conn:
-            print(f"Ligacao recebida de {addr}")
+            with conn:
+                print(f"Ligacao recebida de {addr}")
 
-            buffer = b""
+                buffer = b""
 
-            while True:
-                chunk = conn.recv(4096)
+                while True:
+                    chunk = conn.recv(4096)
 
-                if not chunk:
-                    break
+                    if not chunk:
+                        break
 
-                buffer += chunk
+                    buffer += chunk
 
-                if MLLP_END in buffer:
-                    break
+                    if MLLP_END in buffer:
+                        break
 
-            dados = remover_mllp(buffer)
+                dados = remover_mllp(buffer)
 
-            print("\n ====== Pedido hl7 recebido =======")
-            print(dados)
+                print("\n ====== Mensagem hl7 recebido =======")
+                print(dados)
+                print("===========================================\n")
+
+                # 2. Analisar Tipo e Ação
+                linhas = dados.strip().split("\r")
+                tipo_msg = extrair_campo(linhas[0], 8) # MSH-9
+                dados_lidos = processar_pedido_hl7(dados)
+                acao = dados_lidos.get("acao", "")
+
+                # 3. Lógica de Resposta
+                
+                # CENÁRIO: ADMISSÃO (ADT)
+                if "ADT" in tipo_msg:
+                    print("-> INFO: Admissão processada. Nenhuma resposta necessária.")
+
+                # CENÁRIO: CANCELAMENTO (ORM-CA)
+                elif acao == "CA":
+                    print("-> OPERAÇÃO: Cancelamento. Enviando Confirmação...")
+                    msg_relatorio = gerar_resposta_orm_B('confirmar_cancelamento', dados_lidos)
+
+                # CENÁRIO: NOVO PEDIDO (ORM-NW)
+                elif acao == "NW":
+                    print("-> OPERAÇÃO: Novo Pedido. Iniciando fluxo de resposta...")
+                    
+                    # PASSO 1: Enviar Exame Finalizado (SC / CM)
+                    msg_status = gerar_resposta_orm_B('exame_finalizado', dados_lidos)
+                    if msg_status:
+                        print("   - Enviando Estado: CM (Finalizado)...")
+                        enviar_relatorio_para_mirth(msg_status)
+                    
+                    time.sleep(0.5) # Pausa técnica para o Mirth
+
+                    # PASSO 2: Enviar Relatório de Resultados (ORU^R01)
+                    print("   - Enviando Relatório Final (OBX)...")
+                    msg_relatorio = criar_relatorio_hl7(
+                        dados_lidos["pid"], 
+                        dados_lidos["nome"], 
+                        dados_lidos["cod_exame"]
+                    )
+                        
+            print("\n ====== Enviando Relatório Final ======= ")
+            print(msg_relatorio)
             print("===========================================\n")
-
-            pid, nome, exame = processar_pedido_hl7(dados)
-
-            relatorio = criar_relatorio_hl7(pid, nome, exame)
-
-            print("\n ====== relatorio hl7 recebido =======")
-            print(relatorio)
-            print("===========================================\n")
-
-            enviar_relatorio_para_mirth(relatorio)
+            
+            enviar_relatorio_para_mirth(msg_relatorio)
 
 #==============================================
 # Ponto de entrada do programa
