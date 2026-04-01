@@ -1,0 +1,6 @@
+MSH|^~\&|{emissor}|{emissor}|{recetor}|{recetor}|{data_hoje}||ORU^R01|{msg_id}|P|2.5
+PID|||{id_paciente}||{nome_paciente}||{data_nasc}|{sexo}||||||||||{nif}
+PV1||{tipo_paciente}|{setor}||||||||||||||||{id_episodio}
+ORC|RE|{id_pedido}|{id_pedido}||CM|||||||
+OBR|1|{id_pedido}|{id_pedido}|{cod_exame}^{desc_exame}|||||||||||||||||{data_hoje}|||F
+{conteudo_obx}

@@ -134,61 +134,128 @@ def processar_pedido_hl7(mensagem):
 
     return dados
 
-def gerar_resposta_orm_B(fluxo, dados):
+def gerar_resposta_B(fluxo, dados):
     """
-    fluxo: 'confirmar_cancelamento' (CA) ou 'exame_finalizado' (SC/CM)
-    dados: dicionário com a info extraída do pedido original
+    fluxo: 'confirmar_cancelamento', 'exame_finalizado', 'colheita', 'processamento'
+    tipo_mensagem: 'ORM^O01' (Radiologia) ou 'OML^O21' (Laboratório)
     """
     emissor, recetor = "PACS", "AIDA"
-    data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
+    data_hoje = datetime.now().strftime("%Y%m%d%H%M%S")
     
-    # Configuração dinâmica baseada no que queremos dizer ao Programa A
-    if fluxo == 'confirmar_cancelamento':
-        acao = "CA"   # Cancel Order
-        estado = ""   # No cancelamento o ORC-5 costuma ir vazio ou repetir CA
-        prefixo = "B_CONF_"
-    elif fluxo == 'exame_finalizado':
-        acao = "SC"   # Status Change
-        estado = "CM" # Completed
-        prefixo = "B_STAT_"
-    else:
-        return "Erro: Fluxo de resposta inválido."
+    # Dicionário de estados para facilitar a lógica
+    estados = {
+        'confirmar_cancelamento': {'acao': 'CA', 'estado': 'CA', 'prefixo': 'CONF'},
+        'exame_finalizado':       {'acao': 'SC', 'estado': 'CM', 'prefixo': 'STAT'},
+        'colheita':               {'acao': 'SC', 'estado': 'HC', 'prefixo': 'COLH'},
+        'processamento':          {'acao': 'SC', 'estado': 'IP', 'prefixo': 'PROC'}
+    }
 
-    msg_id = f"{prefixo}{data_atual}{random.randint(10, 99)}"
+    config = estados.get(fluxo)
+    msg_id = f"B_{config['prefixo']}_{data_hoje}"
 
-    # Usar o template comum 'mensagens/Pedido.txt'
     try:
         with open('mensagens/Pedido.txt', 'r', encoding='utf-8') as f:
             template = f.read()
-    except FileNotFoundError:
-        return "Erro: Ficheiro mensagens/Pedido.txt não encontrado."
+            
+        mensagem = template.format(
+            emissor=emissor,
+            recetor=recetor,
+            data_hoje=data_hoje,
+            tipo="ORM^O01", # Aqui entra ORM^O01 ou OML^O21
+            msg_id=msg_id,
+            id_paciente=dados["pid"],
+            nome_paciente=dados["nome"],
+            data_nasc=dados.get("nasc", ""),
+            sexo=dados.get("sexo", ""),
+            nif=dados.get("nif", ""),
+            tipo_paciente=dados.get("tipo_pac", "I"), # PV1-2 (I ou O)
+            setor=dados.get("setor", "RAD"),           # PV1-3 (Ex: INT ou RAD)
+            id_episodio=dados.get("episodio", ""),
+            id_episodio=dados.get("episodio", ""),
+            acao=config['acao'],
+            estado=config['estado'], # Garante que o template tem o campo {estado} no ORC
+            id_pedido=dados["id_pedido"],
+            data_pedido=data_hoje,
+            cod_exame=dados["cod_exame"],
+            desc_exame=dados["desc_exame"],
+            extra_obr="|"
+        )
+        return mensagem
+    except Exception as e:
+        print(f"Erro: {e}")
+        return None
 
-    # Preencher o template
-    # Nota: No template, o campo ORC deve estar assim: ORC|{acao}|{id_pedido}|{id_pedido}||{estado}||||{data_hoje}|
-    mensagem_final = template.format(
-        emissor=emissor,
-        recetor=recetor,
-        data_hoje=data_atual,
-        msg_id=msg_id,
-        id_paciente=dados["pid"],
-        nome_paciente=dados["nome"],
-        data_nasc=dados["nasc"],
-        sexo=dados["sexo"],
-        nif=dados["nif"],
-        tipo_paciente=dados["tipo_pac"],
-        setor=dados["setor"],
-        id_episodio=dados["episodio"],
-        acao=acao,
-        estado=estado, # Precisas de adicionar {estado} no teu ficheiro .txt
-        id_pedido=dados["id_pedido"],
-        data_pedido=data_atual,
-        cod_exame=dados["cod_exame"],
-        desc_exame=dados["desc_exame"],
-        extra_obr="|"
-    )
+def gerar_relatorio_B(dados, formato="texto_longo"):
+    """
+    formato: 'texto_curto' (ST), 'texto_longo' (TX) ou 'pdf' (ED)
+    """
+    data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
+    emissor, recetor = "PACS", "AIDA"
+    msg_id = f"RPT_{data_atual}{random.randint(10,99)}"
+    
+    conteudo_obx = ""
 
-    return mensagem_final
+    # --- CASO 1: Texto Curto (Exemplo CLINIDATA / Análises) ---
+    if formato == "texto_curto":
+        linhas = ["Bla Bla Bla Inicial", "Bla Bla Bla", "Bla Bla Bla Final"]
+        for i, texto in enumerate(linhas, 1):
+            # ST = String Data, F = Final Result
+            conteudo_obx += f"OBX|{i}|ST|BODY||{texto}||||||F|||{data_atual}||^Ana Maria^Frederico\r"
 
+    # --- CASO 2: Texto Longo (Exemplo TAC / Radiologia) ---
+    elif formato == "texto_longo":
+        linhas = [
+            "TAC TORÁCICO", "___", "RELATÓRIO:", 
+            "O estudo efectuado foi comparado com exame de 2014...",
+            "Não há imagens sugestivas de processos neoformativos.",
+            "Relatório validado por: Joaquim Silva"
+        ]
+        for i, texto in enumerate(linhas, 1):
+            # TX = Long Text
+            conteudo_obx += f"OBX|{i}|TX|||{texto}||||||F|||{data_atual}\r"
+
+    # --- CASO 3: PDF em Base64 ---
+    elif formato == "pdf":
+        try:
+            # Se tiveres um ficheiro PDF real, podes converter assim:
+            # with open("resultado.pdf", "rb") as pdf_file:
+            #     encoded_string = base64.b64encode(pdf_file.read()).decode('utf-8')
+            
+            # Para teste, usamos uma string simulada:
+            encoded_string = "JVBERi0xLjQKJ..." 
+            conteudo_obx = f"OBX|1|ED|||{encoded_string}||||||F|||{data_atual}"
+        except Exception as e:
+            print(f"Erro ao processar PDF: {e}")
+            return None
+
+    # --- Preencher o Template Final ---
+    try:
+        with open('mensagens/Relatorio_Base.txt', 'r', encoding='utf-8') as f:
+            template = f.read()
+
+        mensagem_final = template.format(
+            emissor=emissor,
+            recetor=recetor,
+            data_hoje=data_atual,
+            msg_id=msg_id,
+            id_paciente=dados["pid"],
+            nome_paciente=dados["nome"],
+            data_nasc=dados.get("nasc", ""),
+            sexo=dados.get("sexo", ""),
+            nif=dados.get("nif", ""),
+            tipo_paciente=dados.get("tipo_pac", "I"),
+            setor=dados.get("setor", "RAD"),
+            id_episodio=dados.get("episodio", ""),
+            id_pedido=dados["id_pedido"],
+            cod_exame=dados["cod_exame"],
+            desc_exame=dados["desc_exame"],
+            conteudo_obx=conteudo_obx.strip()
+        )
+        return mensagem_final
+        
+    except Exception as e:
+        print(f"Erro ao gerar relatório: {e}")
+        return None
 #==============================================
 # FUNCAO PARA ENVIAR RELATÓRIO para o mirth
 #==============================================
@@ -249,48 +316,63 @@ def iniciar_programa_b():
                 print(dados)
                 print("===========================================\n")
 
-                # 2. Analisar Tipo e Ação
+                # 1. Identificar Tipo e Ação
                 linhas = dados.strip().split("\r")
-                tipo_msg = extrair_campo(linhas[0], 8) # MSH-9
+                tipo_msg = extrair_campo(linhas[0], 8) 
                 dados_lidos = processar_pedido_hl7(dados)
                 acao = dados_lidos.get("acao", "")
-
-                # 3. Lógica de Resposta
                 
-                # CENÁRIO: ADMISSÃO (ADT)
+                msg_relatorio = None # Variável para guardar o relatório final
+
+                # 2. Lógica de Resposta
+                
+                # --- CENÁRIO: ADMISSÃO (ADT) ---
                 if "ADT" in tipo_msg:
                     print("-> INFO: Admissão processada. Nenhuma resposta necessária.")
+                    continue
 
-                # CENÁRIO: CANCELAMENTO (ORM-CA)
+                # --- CENÁRIO: CANCELAMENTO (ORM-CA) ---
                 elif acao == "CA":
                     print("-> OPERAÇÃO: Cancelamento. Enviando Confirmação...")
-                    msg_relatorio = gerar_resposta_orm_B('confirmar_cancelamento', dados_lidos)
+                    msg_relatorio = gerar_resposta_B('confirmar_cancelamento', dados_lidos, tipo_msg)
 
-                # CENÁRIO: NOVO PEDIDO (ORM-NW)
+                # --- CENÁRIO: NOVO PEDIDO (NW) ---
                 elif acao == "NW":
-                    print("-> OPERAÇÃO: Novo Pedido. Iniciando fluxo de resposta...")
+                    print("-> OPERAÇÃO: Novo Pedido. Iniciando fluxo...")
                     
-                    # PASSO 1: Enviar Exame Finalizado (SC / CM)
-                    msg_status = gerar_resposta_orm_B('exame_finalizado', dados_lidos)
-                    if msg_status:
-                        print("   - Enviando Estado: CM (Finalizado)...")
-                        enviar_relatorio_para_mirth(msg_status)
-                    
-                    time.sleep(0.5) # Pausa técnica para o Mirth
+                    # PASSO 1: Enviar Estados Intermédios
+                    if "OML" in tipo_msg:
+                        # Fluxo de Laboratório
+                        enviar_relatorio_para_mirth(gerar_resposta_B('colheita', dados_lidos, "OML^O21"))
+                        time.sleep(0.5)
+                        enviar_relatorio_para_mirth(gerar_resposta_B('processamento', dados_lidos, "OML^O21"))
+                        time.sleep(0.5)
+                        enviar_relatorio_para_mirth(gerar_resposta_B('exame_finalizado', dados_lidos, "OML^O21"))
+                    else:
+                        # Fluxo de Radiologia
+                        enviar_relatorio_para_mirth(gerar_resposta_B('exame_finalizado', dados_lidos, "ORM^O01"))
 
-                    # PASSO 2: Enviar Relatório de Resultados (ORU^R01)
-                    print("   - Enviando Relatório Final (OBX)...")
-                    msg_relatorio = criar_relatorio_hl7(
-                        dados_lidos["pid"], 
-                        dados_lidos["nome"], 
-                        dados_lidos["cod_exame"]
-                    )
-                        
-            print("\n ====== Enviando Relatório Final ======= ")
-            print(msg_relatorio)
-            print("===========================================\n")
-            
-            enviar_relatorio_para_mirth(msg_relatorio)
+                    time.sleep(0.5)
+
+                    # PASSO 2: Decidir qual Relatório (OBX) gerar usando a nova função
+                    print("   - Gerando conteúdo do Relatório Final...")
+                    
+                    if "OML" in tipo_msg:
+                        # Exemplo: Análises usam Texto Curto (ST)
+                        msg_relatorio = gerar_relatorio_B(dados_lidos, formato="texto_curto")
+                    elif "M10405" in dados_lidos["cod_exame"]:
+                        # Exemplo: Se for este código de Raio-X, manda PDF (ED)
+                        msg_relatorio = gerar_relatorio_B(dados_lidos, formato="pdf")
+                    else:
+                        # Padrão para os outros: Texto Longo (TX)
+                        msg_relatorio = gerar_relatorio_B(dados_lidos, formato="texto_longo")
+
+                # 3. Envio Final (Confirmação de Cancelamento OU Relatório de Resultados)
+                if msg_relatorio:
+                    print("\n ====== Enviando Resposta Final ======= ")
+                    print(msg_relatorio)
+                    print("===========================================\n")
+                    enviar_relatorio_para_mirth(msg_relatorio)
 
 #==============================================
 # Ponto de entrada do programa

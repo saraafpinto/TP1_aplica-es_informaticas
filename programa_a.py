@@ -77,22 +77,32 @@ def criar_admissao_hl7():
 
     return mensagem_final
 
-def criar_pedido_cancelamento_hl7():
-    fluxo = "requisicao"
+from datetime import datetime
+import random
+
+def criar_pedido_hl7():
+    """
+    fluxo: 'requisicao' ou 'cancelar'
+    tipo_pedido: 'ORM^O01' (Radiologia) ou 'OML^O21' (Laboratório)
+    """
     emissor, recetor = "AIDA", "PACS"
-    # 1. Lógica de Fluxo (Quem envia e qual a ação) 
+    fluxo="requisicao"
+    
+    # 1. Lógica de Fluxo para o Programa A
     if fluxo == 'requisicao':
         acao = "NW" 
-        extra_obr = "30|" # Prioridade (exemplo do doc) 
+        estado = ""      
+        extra_obr = "30|" 
     elif fluxo == 'cancelar':
-        acao = "CA" # Cancel Order 
+        acao = "CA" 
+        estado = ""      
         extra_obr = "|"
     else:
         return "Erro: O Programa A só pode requisitar ou cancelar."
 
-    # 2. Gerar Timestamps automáticos 
+    # 2. Gerar Timestamps e IDs
     data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
-    msg_id = f"ORM{data_atual}{random.randint(10, 99)}"
+    msg_id = f"A_{data_atual}{random.randint(10, 99)}"
 
     # 3. Ler o ficheiro de template
     try:
@@ -101,20 +111,24 @@ def criar_pedido_cancelamento_hl7():
     except FileNotFoundError:
         return "Erro: Ficheiro mensagens/Pedido.txt não encontrado."
 
-    # 4. Preencher o template com os argumentos da função
+    # 4. Preencher o template com TODOS os campos dinâmicos
     mensagem_final = template.format(
         emissor=emissor,
         recetor=recetor,
         data_hoje=data_atual,
+        tipo="ORM^O01",      # MSH-9 (ORM^O01 ou OML^O21)
         msg_id=msg_id,
         id_paciente="50626",
         nome_paciente="CONCEICAO SERRANO^MARIA",
         data_nasc="19411012",
         sexo="F",
         nif="28006303",
+        tipo_paciente="I",      # PV1-2: 'I' (Internamento) ou 'O' (Outpatient/Ambulatório)
+        setor="INT",            # PV1-3: Ex: 'INT', 'URG', 'RAD'
         id_episodio="15002727",
-        acao=acao,
-        id_pedido="4727374", # Placer Order Number [cite: 46, 47]
+        acao=acao,              # ORC-1: 'NW' ou 'CA'
+        estado=estado,          # ORC-5: Vazio no A, preenchido pelo B (CM, IP, HC)
+        id_pedido="4727374", 
         data_pedido=data_atual,
         cod_exame="M10405",
         desc_exame="TORAX, UMA INCIDENCIA",
@@ -202,7 +216,7 @@ def escutar_relatorio():
 def enviar_pedido():
     # cria a mensagem HL7
     #mensagem = criar_admissao_hl7()
-    mensagem = criar_pedido_cancelamento_hl7()
+    mensagem = criar_pedido_hl7()
 
     # envolve a mensagem com MLLP
     pacote = envolver_mllp(mensagem)
