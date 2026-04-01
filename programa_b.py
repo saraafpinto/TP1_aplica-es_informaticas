@@ -134,7 +134,7 @@ def processar_pedido_hl7(mensagem):
 
     return dados
 
-def gerar_resposta_B(fluxo, dados):
+def gerar_resposta_B(fluxo, dados, tipo_mensagem):
     """
     fluxo: 'confirmar_cancelamento', 'exame_finalizado', 'colheita', 'processamento'
     tipo_mensagem: 'ORM^O01' (Radiologia) ou 'OML^O21' (Laboratório)
@@ -161,7 +161,7 @@ def gerar_resposta_B(fluxo, dados):
             emissor=emissor,
             recetor=recetor,
             data_hoje=data_hoje,
-            tipo="ORM^O01", # Aqui entra ORM^O01 ou OML^O21
+            tipo=tipo_mensagem, # Aqui entra ORM^O01 ou OML^O21
             msg_id=msg_id,
             id_paciente=dados["pid"],
             nome_paciente=dados["nome"],
@@ -170,7 +170,6 @@ def gerar_resposta_B(fluxo, dados):
             nif=dados.get("nif", ""),
             tipo_paciente=dados.get("tipo_pac", "I"), # PV1-2 (I ou O)
             setor=dados.get("setor", "RAD"),           # PV1-3 (Ex: INT ou RAD)
-            id_episodio=dados.get("episodio", ""),
             id_episodio=dados.get("episodio", ""),
             acao=config['acao'],
             estado=config['estado'], # Garante que o template tem o campo {estado} no ORC
@@ -230,7 +229,7 @@ def gerar_relatorio_B(dados, formato="texto_longo"):
 
     # --- Preencher o Template Final ---
     try:
-        with open('mensagens/Relatorio_Base.txt', 'r', encoding='utf-8') as f:
+        with open('mensagens/Relatorio.txt', 'r', encoding='utf-8') as f:
             template = f.read()
 
         mensagem_final = template.format(
