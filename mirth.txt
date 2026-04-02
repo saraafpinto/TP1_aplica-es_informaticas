@@ -1,0 +1,44 @@
+// --- 1. TRADUÇÃO DE ESTADOS E ACÇÕES (Segmento ORC) ---
+var acao = msg['ORC']['ORC.1'].toString();
+if (acao == 'NW') { msg['ORC']['ORC.1'] = 'Novo pedido'; }
+else if (acao == 'CA') { msg['ORC']['ORC.1'] = 'Cancelamento'; }
+else if (acao == 'SC') { msg['ORC']['ORC.1'] = 'Estado Alterado'; }
+else if (acao == 'RE') { msg['ORC']['ORC.1'] = 'Resultados Disponíveis'; }
+
+var estadoExecucao = msg['ORC']['ORC.5'].toString();
+if (estadoExecucao == 'CM') { msg['ORC']['ORC.5'] = 'Concluído'; }
+else if (estadoExecucao == 'HC') { msg['ORC']['ORC.5'] = 'Amostra Colhida'; }
+
+// --- 2. TRADUÇÃO DE DADOS DO PACIENTE E ADMISSÃO (PID e PV1) ---
+var sexo = msg['PID']['PID.8'].toString();
+if (sexo == 'M') { msg['PID']['PID.8'] = 'Masculino'; }
+else if (sexo == 'F') { msg['PID']['PID.8'] = 'Feminino'; }
+
+var tipoAdm = msg['PV1']['PV1.2'].toString();
+if (tipoAdm == 'URG') { msg['PV1']['PV1.2'] = 'Urgente'; }
+else if (tipoAdm == 'I' || tipoAdm == 'INT') { msg['PV1']['PV1.2'] = 'Internamento'; }
+else if (tipoAdm == 'O') { msg['PV1']['PV1.2'] = 'Externo/Ambulatório'; }
+
+// --- 3. TRADUÇÃO DE EXAMES E PRIORIDADES (Segmento OBR) ---
+var prioridade = msg['OBR']['OBR.5'].toString();
+if (prioridade == 'U') { msg['OBR']['OBR.5'] = 'Pedido Urgente'; }
+
+var resultadoStatus = msg['OBR']['OBR.25'].toString();
+if (resultadoStatus == 'F') { msg['OBR']['OBR.25'] = 'Resultado Final'; }
+
+var modalidade = msg['OBR']['OBR.24'].toString(); // Campo da modalidade (CR, etc)
+if (modalidade == 'CR') { msg['OBR']['OBR.24'] = 'Radiologia Computarizada'; }
+
+var servico = msg['OBR']['OBR.18'].toString(); // Campo do serviço (RXE, RAD)
+if (servico == 'RAD') { msg['OBR']['OBR.18'] = 'Radiologia'; }
+else if (servico == 'RXE') { msg['OBR']['OBR.18'] = 'Exames de Radiologia'; }
+
+// --- 4. TRADUÇÃO DE RESULTADOS E TEXTO (Segmento OBX) ---
+// Como o OBX pode repetir-se, o ideal é correr um ciclo se existirem vários
+for each (obx in msg['OBX']) {
+    var tipoDados = obx['OBX.2'].toString();
+    if (tipoDados == 'TX') { obx['OBX.2'] = 'Dados em Texto'; }
+    
+    var valorExame = obx['OBX.5']['OBX.5.1'].toString();
+    if (valorExame == 'PDF_BASE64') { obx['OBX.5']['OBX.5.1'] = 'Documento PDF'; }
+}
