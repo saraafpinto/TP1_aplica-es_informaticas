@@ -42,65 +42,163 @@ MLLP_END = b"\x1c\x0d"
 # FUNCAO PARA CRIAR UMA MENSAGEM HL7 DE PEDIDO
 #==============================================
 
-def criar_admissao_hl7():
-    # 1. Dados que viriam do teu formulário/input
-    tipo = "A08" # Ou "A08"
-    id_principal = "1458085"
-    id_antigo = "1587559" # Só importa se for A40
+def input_nao_vazio(mensagem):
+    while True:
+        valor = input(mensagem).strip()
+        if valor:
+            return valor
+        print("Campo obrigatório!")
 
-    # 2. Lógica para o segmento MRG 
-    if tipo == "A40":
-        # Se for fusão, cria a linha do MRG com o ID antigo 
-        conteudo_mrg = f"MRG|{id_antigo}|\n" 
+def validar_data(data):
+    if len(data) != 8 or not data.isdigit():
+        return False
+    try:
+        datetime.strptime(data, "%Y%m%d")
+        return True
+    except ValueError:
+        return False
+
+def input_data(mensagem):
+    while True:
+        data = input(mensagem).strip()
+        if validar_data(data):
+            return data
+        print("Data inválida! Use AAAAMMDD.")
+
+def input_sexo():
+    while True:
+        sexo = input("Sexo (M/F): ").upper().strip()
+        if sexo in ["M", "F"]:
+            return sexo
+        print("Valor inválido! Use M ou F.")
+
+def input_nif():
+    while True:
+        nif = input("NIF: ").strip()
+        if nif.isdigit() and len(nif) == 9:
+            return nif
+        print("NIF inválido! Deve ter 9 dígitos.")
+
+def input_opcao(mensagem, opcoes_validas):
+    while True:
+        valor = input(mensagem).upper().strip()
+        if valor in opcoes_validas:
+            return valor
+        print(f"Opção inválida! Escolha: {', '.join(opcoes_validas)}")
+
+
+def pedir_dados_admissao():
+    print("\n" + "-"*30)
+    print(" DADOS PARA ADMISSÃO DO PACIENTE")
+    print("-"*30)
+
+    dados = {}
+
+    dados['tipo'] = input_opcao(
+        "Tipo de Evento (A08 / A40): ", ["A08", "A40"]
+    )
+
+    dados['id_principal'] = input_nao_vazio("ID/Processo Principal: ")
+
+    dados['id_antigo'] = ""
+    if dados['tipo'] == "A40":
+        dados['id_antigo'] = input_nao_vazio("ID Antigo para Fusão: ")
+
+    dados['nome'] = input_nao_vazio("Nome Completo: ").upper()
+    dados['nasc'] = input_data("Data Nascimento (AAAAMMDD): ")
+    dados['sexo'] = input_sexo()
+    dados['nif'] = input_nif()
+    dados['morada'] = input_nao_vazio("Morada: ").upper()
+
+    dados['tipo_adm'] = input_opcao(
+        "Tipo Admissão (URG/INT/EXT): ", ["URG", "INT", "EXT"]
+    )
+
+    return dados
+
+
+def criar_admissao_hl7(dados_manuais):
+    # Lógica para o segmento MRG (exclusivo de admissões A40)
+    if dados_manuais['tipo'] == "A40":
+        conteudo_mrg = f"MRG|{dados_manuais['id_antigo']}|\n" 
     else:
-        # Se for atualização, a linha fica vazia
         conteudo_mrg = ""
 
-    # 3. Ler e preencher o TXT
+    # Ler o template de Admissão
     with open('mensagens/Admissão.txt', 'r') as f:
         template = f.read()
 
+    # Preencher com os dados dinâmicos
     mensagem_final = template.format(
-        tipo_evento=tipo,
+        tipo_evento=dados_manuais['tipo'],
         data_hoje=datetime.now().strftime("%Y%m%d%H%M"),
-        msg_id="A2015050514",
-        id_principal=id_principal,
-        nome="CAMPOS^LUIS^CARDOSO^^",
-        nasc="19950204",
-        sexo="M",
-        morada="RUA ESCULTOR BARATA LINDO 3^^PORTO^PORTO^4000",
-        nif="0",
-        segmento_mrg=conteudo_mrg, # Aqui entra a linha extra ou o vazio
-        tipo_adm="URG",
-        id_episodio="15050046"
+        msg_id=f"ADM{random.randint(1000,9999)}",
+        id_principal=dados_manuais['id_principal'],
+        nome=dados_manuais['nome'],
+        nasc=dados_manuais['nasc'],
+        sexo=dados_manuais['sexo'],
+        morada=dados_manuais['morada'],
+        nif=dados_manuais['nif'],
+        segmento_mrg=conteudo_mrg, 
+        tipo_adm=dados_manuais['tipo_adm'],
+        id_episodio=f"EP{random.randint(10000,99999)}"
     )
 
     return mensagem_final
 
-from datetime import datetime
-import random
+def pedir_dados_pedido():
+    print("\n" + "-"*30)
+    print(" DADOS DO PEDIDO DE EXAME")
+    print("-"*30)
 
-def criar_pedido_hl7():
+    catalogo = {
+        "1": {"nome": "RAIO-X TORAX", "codigo": "M10405"},
+        "2": {"nome": "TAC ABDOMINAL", "codigo": "TAC01"},
+        "3": {"nome": "HEMOGRAMA", "codigo": "ANAL01"},
+        "4": {"nome": "URINA", "codigo": "ANAL02"}
+    }
+
+    dados = {}
+
+    dados['nome'] = input_nao_vazio("Nome Completo: ").upper()
+    dados['id_pac'] = input_nao_vazio("ID do Paciente: ")
+    dados['nif'] = input_nif()
+    dados['nasc'] = input_data("Data Nascimento (AAAAMMDD): ")
+    dados['sexo'] = input_sexo()
+
+    print("\n--- EXAMES DISPONÍVEIS ---")
+    for chave, info in catalogo.items():
+        print(f"{chave}. {info['nome']}")
+
+    while True:
+        escolha = input("Escolha o número do exame: ").strip()
+        if escolha in catalogo:
+            exame = catalogo[escolha]
+            dados['cod_exame'] = exame['codigo']
+            dados['exame'] = exame['nome']
+            break
+        print("Escolha inválida!")
+
+    return dados
+
+def criar_pedido_hl7(fluxo, dados_manuais):
     """
     fluxo: 'requisicao' ou 'cancelar'
-    tipo_pedido: 'ORM^O01' (Radiologia) ou 'OML^O21' (Laboratório)
+    dados_manuais: Dicionário com nome, id, nasc, sexo, etc., vindos do input()
     """
     emissor, recetor = "AIDA", "PACS"
-    fluxo="requisicao"
-    
-    # 1. Lógica de Fluxo para o Programa A
-    if fluxo == 'requisicao':
-        acao = "NW" 
-        estado = ""      
-        extra_obr = "30|" 
-    elif fluxo == 'cancelar':
-        acao = "CA" 
-        estado = ""      
-        extra_obr = "|"
+    if dados_manuais['cod_exame'].startswith("ANAL"):
+        tipo_msg = "OML^O21"
     else:
-        return "Erro: O Programa A só pode requisitar ou cancelar."
+        tipo_msg = "ORM^O01"
 
-    # 2. Gerar Timestamps e IDs
+    if fluxo == 'requisicao':
+        acao = "NW"
+        extra_obr = "30|" 
+    else:
+        acao = "CA"
+        extra_obr = "|"
+
     data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
     msg_id = f"A_{data_atual}{random.randint(10, 99)}"
 
@@ -111,27 +209,27 @@ def criar_pedido_hl7():
     except FileNotFoundError:
         return "Erro: Ficheiro mensagens/Pedido.txt não encontrado."
 
-    # 4. Preencher o template com TODOS os campos dinâmicos
+    # 4. Preencher o template com os DADOS DA DORA + Lógica do Sistema
     mensagem_final = template.format(
         emissor=emissor,
         recetor=recetor,
         data_hoje=data_atual,
-        tipo="ORM^O01",      # MSH-9 (ORM^O01 ou OML^O21)
+        tipo=tipo_msg,          # Mantemos automático conforme o teu pedido
         msg_id=msg_id,
-        id_paciente="50626",
-        nome_paciente="CONCEICAO SERRANO^MARIA",
-        data_nasc="19411012",
-        sexo="F",
-        nif="28006303",
-        tipo_paciente="I",      # PV1-2: 'I' (Internamento) ou 'O' (Outpatient/Ambulatório)
-        setor="INT",            # PV1-3: Ex: 'INT', 'URG', 'RAD'
-        id_episodio="15002727",
-        acao=acao,              # ORC-1: 'NW' ou 'CA'
-        estado=estado,          # ORC-5: Vazio no A, preenchido pelo B (CM, IP, HC)
-        id_pedido="4727374", 
+        id_paciente=dados_manuais['id_pac'],    # DINÂMICO
+        nome_paciente=dados_manuais['nome'],    # DINÂMICO
+        data_nasc=dados_manuais['nasc'],        # DINÂMICO
+        sexo=dados_manuais['sexo'],              # DINÂMICO
+        nif=dados_manuais['nif'],                # DINÂMICO
+        tipo_paciente="I",      
+        setor="INT",            
+        id_episodio=f"EP{random.randint(100,999)}", # Gerado na hora
+        acao=acao,                               # Automático (NW ou CA)
+        estado="",              
+        id_pedido=f"REQ{random.randint(1000,9999)}", # ID de pedido único
         data_pedido=data_atual,
-        cod_exame="M10405",
-        desc_exame="TORAX, UMA INCIDENCIA",
+        cod_exame=dados_manuais['cod_exame'],
+        desc_exame=dados_manuais['exame'],      # DINÂMICO
         extra_obr=extra_obr
     )
 
@@ -181,28 +279,30 @@ def escutar_relatorio():
         #Mensagem informativa
         print(f"Programa A à espera do relatório na porta {PORTA_RELATORIO}...")
 
-        #Aceita uma ligacao de um cliente (bloqueante)
-        conn, addr = servidor.accept()
+        # CICLO WHILE TRUE PARA FICAR SEMPRE À ESCUTA
+        while True:
+            #Aceita uma ligacao de um cliente (bloqueante)
+            conn, addr = servidor.accept()
 
-        # usa o socket da ligacao estabelecida
-        with conn:
-            print(f"\nLigação recebida de {addr}")
-            
-            # buffer para acumular dados recebidos
-            buffer = b""
-            
-            # ciclo para recebr dados em blocos
-            while True:
-                chunk = conn.recv(4096)
-
-                if not chunk:
-                    break
-
-                buffer += chunk
+            # usa o socket da ligacao estabelecida
+            with conn:
+                print(f"\nLigação recebida de {addr}")
                 
-                # se ja recebeu o terminador MLLP, pode parar
-                if MLLP_END in buffer:
-                    break
+                # buffer para acumular dados recebidos
+                buffer = b""
+                
+                # ciclo para recebr dados em blocos
+                while True:
+                    chunk = conn.recv(4096)
+
+                    if not chunk:
+                        break
+
+                    buffer += chunk
+                    
+                    # se ja recebeu o terminador MLLP, pode parar
+                    if MLLP_END in buffer:
+                        break
 
             # mostra
             print("\n======== Relatorio final recebido =======")
@@ -213,10 +313,10 @@ def escutar_relatorio():
 # FUNCAO PARA enviar pedido ao mirth (cliente)
 #==============================================
             
-def enviar_pedido():
+def enviar_pedido(mensagem):
     # cria a mensagem HL7
     #mensagem = criar_admissao_hl7()
-    mensagem = criar_pedido_hl7()
+    #mensagem = criar_pedido_hl7()
 
     # envolve a mensagem com MLLP
     pacote = envolver_mllp(mensagem)
@@ -259,11 +359,43 @@ if __name__ == "__main__":
     #pequena pausa para garantir que o servidr ja esta pronto
     time.sleep(1)
 
-    # espera input do utilizador antes de enviar o pedido
-    input("Prime Enter para enviar o pedido de exame...")
+    # O NOSSO MENU INTERATIVO
+    while True:
+        print("\n" + "="*45)
+        print(" MENU PRINCIPAL - SISTEMA DE PEDIDOS (AIDA)")
+        print("="*45)
+        print("1. Enviar Novo Pedido de Exame")
+        print("2. Cancelar Pedido de Exame")
+        print("3. Enviar Admissão de Paciente")
+        print("0. Sair do Programa")
+        print("="*45)
+        
+        opcao = input("Escolhe uma opção: ")
 
-    # encia o pedido HL7
-    enviar_pedido()
-
-    # espera o input antes de terminar o programa
-    input("Prime Enter para terminar o programa A..")
+        if opcao == "1":
+            # 1. Pedir os dados à Dora
+            meus_dados = pedir_dados_pedido()
+            # 2. Gerar a mensagem passando esses dados
+            msg = criar_pedido_hl7("requisicao", meus_dados)
+            # 3. Enviar
+            enviar_pedido(msg)
+            
+        elif opcao == "2":
+            # 1. Pedir os dados (para saber qual paciente cancelar)
+            meus_dados = pedir_dados_pedido()
+            # 2. Gerar a mensagem de cancelamento
+            msg = criar_pedido_hl7("cancelar", meus_dados)
+            # 3. Enviar
+            enviar_pedido(msg)
+        elif opcao == "3":
+            # 1. Pedir dados específicos de admissão
+            dados_adm = pedir_dados_admissao()
+            # 2. Gerar a mensagem com esses dados
+            msg = criar_admissao_hl7(dados_adm)
+            # 3. Enviar para o Mirth
+            enviar_pedido(msg)
+        elif opcao == "0":
+            print("A encerrar o Programa A...")
+            break
+        else:
+            print("Opção inválida! Tenta novamente.")

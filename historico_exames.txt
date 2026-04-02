@@ -1,0 +1,2 @@
+[2026-04-01 20:58:39] PID: 1 | Nome: HELENA | Exame: TAC ABDOMINAL | Estado: Exame Concluído
+[2026-04-02 00:42:12] PID: 3 | Nome: PAULA | Exame: HEMOGRAMA | Estado: Exame Concluído
