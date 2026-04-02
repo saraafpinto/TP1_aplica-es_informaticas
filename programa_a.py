@@ -9,6 +9,7 @@ import time
 
 #Importa datetime para obter data e hora atuais
 from datetime import datetime
+import random
 
 #===============================
 # CONFIGURAÇÃO DE LIGAÇÃO AO MIRTH
@@ -41,17 +42,100 @@ MLLP_END = b"\x1c\x0d"
 # FUNCAO PARA CRIAR UMA MENSAGEM HL7 DE PEDIDO
 #==============================================
 
-def criar_pedido_hl7():
-    # obtem data/hora atual no formato HL7 (YYYYMMDDHHMMSS)
-    agora = datetime.now().strftime("%Y%m%d%H%M%S")
+def criar_admissao_hl7():
+    # 1. Dados que viriam do teu formulário/input
+    tipo = "A08" # Ou "A08"
+    id_principal = "1458085"
+    id_antigo = "1587559" # Só importa se for A40
 
-    # Retorna uma mensagem HL7 com três segmentos:
-    # MSH (header), PID (doente) e OBR (pedido de exame)
-    return (
-        f"MSH|^~\\&|ProgramaA|Clinica|Mirth|Hospital|{agora}||ORM^O01|MSG001|P|2.3\r"
-        f"PID|1||123456||Joao Silva||19800101|M\r"
-        f"OBR|1||EX001|HEMOGRAMA|{agora}\r"
+    # 2. Lógica para o segmento MRG 
+    if tipo == "A40":
+        # Se for fusão, cria a linha do MRG com o ID antigo 
+        conteudo_mrg = f"MRG|{id_antigo}|\n" 
+    else:
+        # Se for atualização, a linha fica vazia
+        conteudo_mrg = ""
+
+    # 3. Ler e preencher o TXT
+    with open('mensagens/Admissão.txt', 'r') as f:
+        template = f.read()
+
+    mensagem_final = template.format(
+        tipo_evento=tipo,
+        data_hoje=datetime.now().strftime("%Y%m%d%H%M"),
+        msg_id="A2015050514",
+        id_principal=id_principal,
+        nome="CAMPOS^LUIS^CARDOSO^^",
+        nasc="19950204",
+        sexo="M",
+        morada="RUA ESCULTOR BARATA LINDO 3^^PORTO^PORTO^4000",
+        nif="0",
+        segmento_mrg=conteudo_mrg, # Aqui entra a linha extra ou o vazio
+        tipo_adm="URG",
+        id_episodio="15050046"
     )
+
+    return mensagem_final
+
+from datetime import datetime
+import random
+
+def criar_pedido_hl7():
+    """
+    fluxo: 'requisicao' ou 'cancelar'
+    tipo_pedido: 'ORM^O01' (Radiologia) ou 'OML^O21' (Laboratório)
+    """
+    emissor, recetor = "AIDA", "PACS"
+    fluxo="requisicao"
+    
+    # 1. Lógica de Fluxo para o Programa A
+    if fluxo == 'requisicao':
+        acao = "NW" 
+        estado = ""      
+        extra_obr = "30|" 
+    elif fluxo == 'cancelar':
+        acao = "CA" 
+        estado = ""      
+        extra_obr = "|"
+    else:
+        return "Erro: O Programa A só pode requisitar ou cancelar."
+
+    # 2. Gerar Timestamps e IDs
+    data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
+    msg_id = f"A_{data_atual}{random.randint(10, 99)}"
+
+    # 3. Ler o ficheiro de template
+    try:
+        with open('mensagens/Pedido.txt', 'r', encoding='utf-8') as f:
+            template = f.read()
+    except FileNotFoundError:
+        return "Erro: Ficheiro mensagens/Pedido.txt não encontrado."
+
+    # 4. Preencher o template com TODOS os campos dinâmicos
+    mensagem_final = template.format(
+        emissor=emissor,
+        recetor=recetor,
+        data_hoje=data_atual,
+        tipo="ORM^O01",      # MSH-9 (ORM^O01 ou OML^O21)
+        msg_id=msg_id,
+        id_paciente="50626",
+        nome_paciente="CONCEICAO SERRANO^MARIA",
+        data_nasc="19411012",
+        sexo="F",
+        nif="28006303",
+        tipo_paciente="I",      # PV1-2: 'I' (Internamento) ou 'O' (Outpatient/Ambulatório)
+        setor="INT",            # PV1-3: Ex: 'INT', 'URG', 'RAD'
+        id_episodio="15002727",
+        acao=acao,              # ORC-1: 'NW' ou 'CA'
+        estado=estado,          # ORC-5: Vazio no A, preenchido pelo B (CM, IP, HC)
+        id_pedido="4727374", 
+        data_pedido=data_atual,
+        cod_exame="M10405",
+        desc_exame="TORAX, UMA INCIDENCIA",
+        extra_obr=extra_obr
+    )
+
+    return mensagem_final
 
 #==============================================
 # FUNCAO PARA ENVOLVER A MENSAGEM COM MLLP
@@ -131,6 +215,7 @@ def escutar_relatorio():
             
 def enviar_pedido():
     # cria a mensagem HL7
+    #mensagem = criar_admissao_hl7()
     mensagem = criar_pedido_hl7()
 
     # envolve a mensagem com MLLP
