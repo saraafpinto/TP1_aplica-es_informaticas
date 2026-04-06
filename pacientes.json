@@ -6,12 +6,6 @@
         "nif": ""
     },
     "2": {
-<<<<<<< HEAD
-        "nome": "SANTOS^ANA^^",
-        "nasc": "20000909",
-        "sexo": "F",
-        "nif": "123456789"
-=======
         "nome": "OLIVEIRA^HELENA^^",
         "nasc": "20040909",
         "sexo": "F",
@@ -34,6 +28,19 @@
         "nasc": "20040519",
         "sexo": "F",
         "nif": ""
->>>>>>> 723ef48b1714d750d3af8c822f2f689ee0b73dda
+    },
+    "6": {
+        "nome": "SILVA^DANIELA^^",
+        "nasc": "20000909",
+        "sexo": "F",
+        "nif": "123456789"
+    },
+    "7": {
+        "nome": "SILVA^JOAO^^",
+        "nasc": "20000909",
+        "sexo": "M",
+        "morada": "RUA DE BRAGA",
+        "tipo_adm": "I",
+        "nif": "123456789"
     }
 }

@@ -388,14 +388,24 @@ def iniciar_programa_b():
                         print(f"A atualizar dados do paciente: {pid_principal}")
 
                     # Em ambos os casos, guardamos/atualizamos o registo principal
+                    # Procura dados antigos para não os apagar caso a nova mensagem não traga tudo
+                    dados_antigos = pacientes.get(pid_principal, {}) 
+                    morada_antiga = dados_antigos.get("morada", "")
+                    tipo_adm_antigo = dados_antigos.get("tipo_adm", "")
+                    
+                    nova_morada = dados_lidos.get("morada", "")
+                    novo_tipo_adm = dados_lidos.get("tipo_pac", "") # Extraído do PV1
+
                     pacientes[pid_principal] = {
                         "nome": dados_lidos["nome"],
                         "nasc": dados_lidos["nasc"],
                         "sexo": dados_lidos["sexo"],
+                        "morada": nova_morada if nova_morada else morada_antiga,
+                        "tipo_adm": novo_tipo_adm if novo_tipo_adm else tipo_adm_antigo,
                         "nif": dados_lidos["nif"]
                     }
                     guardar_pacientes(pacientes)
-                    print(f"✔ JSON atualizado com sucesso para {dados_lidos['nome']}.\n")
+                    print(f" JSON atualizado com sucesso para {dados_lidos['nome']}.\n")
                     
                     # Como não queres ACK, fazemos apenas 'continue' para esperar a próxima mensagem
                     continue
@@ -417,12 +427,21 @@ def iniciar_programa_b():
                         print(f" Paciente {pid} já existe → dados podem ser atualizados.")
                         
                     # Criar ou atualizar paciente automaticamente com os dados do pedido
-                    pacientes[pid] = {
+                    # Procura dados antigos para não os apagar caso a nova mensagem não traga tudo
+                    dados_antigos = pacientes.get(pid, {}) 
+                    morada_antiga = dados_antigos.get("morada", "")
+                    tipo_adm_antigo = dados_antigos.get("tipo_adm", "")
+                    
+                    nova_morada = dados_lidos.get("morada", "")
+                    novo_tipo_adm = dados_lidos.get("tipo_pac", "") # Extraído do PV1
+
+                    pacientes[pid] = {  
                         "nome": dados_lidos["nome"],
                         "nasc": dados_lidos["nasc"],
                         "sexo": dados_lidos["sexo"],
-                        "nif": dados_lidos["nif"] if dados_lidos["nif"] else pacientes[pid].get("nif", ""),
-                        "morada": dados_lidos["morada"]
+                        "morada": nova_morada if nova_morada else morada_antiga,
+                        "tipo_adm": novo_tipo_adm if novo_tipo_adm else tipo_adm_antigo,
+                        "nif": dados_lidos["nif"]
                     }
 
                     guardar_pacientes(pacientes)
