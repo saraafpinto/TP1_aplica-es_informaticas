@@ -1,0 +1,41 @@
+{
+    "REQ4838": {
+        "nome": "ANA",
+        "id_pac": "4",
+        "nif": "233456778",
+        "nasc": "20000708",
+        "sexo": "F",
+        "cod_exame": "M10405",
+        "exame": "RAIO-X TORAX",
+        "id_pedido": "REQ4838",
+        "id_episodio": "EP738",
+        "estado": "Cancelado",
+        "data_criacao": "2026-04-06 20:43:19"
+    },
+    "REQ5989": {
+        "nome": "JOANA",
+        "id_pac": "5",
+        "nif": "283782732",
+        "nasc": "20000909",
+        "sexo": "F",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ5989",
+        "id_episodio": "EP889",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-06 20:50:23"
+    },
+    "REQ9901": {
+        "nome": "RICARDO",
+        "id_pac": "6",
+        "nif": "228282828",
+        "nasc": "19990808",
+        "sexo": "M",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ9901",
+        "id_episodio": "EP999",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-06 20:58:24"
+    }
+}

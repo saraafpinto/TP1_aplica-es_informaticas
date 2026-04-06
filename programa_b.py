@@ -133,7 +133,7 @@ def processar_pedido_hl7(mensagem):
             dados["nome"] = extrair_campo(linha, 5)
             dados["nasc"] = extrair_campo(linha, 7)
             dados["sexo"] = extrair_campo(linha, 8)
-            dados["nif"] = extrair_campo(linha, 19)
+            dados["nif"] = extrair_campo(linha, 18)
         elif linha.startswith("PV1"):
             dados["tipo_pac"] = extrair_campo(linha, 2)
             dados["setor"] = extrair_campo(linha, 3)
