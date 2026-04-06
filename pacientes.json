@@ -6,9 +6,34 @@
         "nif": ""
     },
     "2": {
+<<<<<<< HEAD
         "nome": "SANTOS^ANA^^",
         "nasc": "20000909",
         "sexo": "F",
         "nif": "123456789"
+=======
+        "nome": "OLIVEIRA^HELENA^^",
+        "nasc": "20040909",
+        "sexo": "F",
+        "nif": ""
+    },
+    "3": {
+        "nome": "GOMES^MARIA^^",
+        "nasc": "20040909",
+        "sexo": "F",
+        "nif": ""
+    },
+    "4": {
+        "nome": "PINTO^SARA^^",
+        "nasc": "20040524",
+        "sexo": "F",
+        "nif": ""
+    },
+    "5": {
+        "nome": "PINTO^RITA^^",
+        "nasc": "20040519",
+        "sexo": "F",
+        "nif": ""
+>>>>>>> 723ef48b1714d750d3af8c822f2f689ee0b73dda
     }
 }
