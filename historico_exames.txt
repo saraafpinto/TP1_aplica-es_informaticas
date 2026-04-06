@@ -1,2 +1,9 @@
 [2026-04-01 20:58:39] PID: 1 | Nome: HELENA | Exame: TAC ABDOMINAL | Estado: Exame Concluído
 [2026-04-02 00:42:12] PID: 3 | Nome: PAULA | Exame: HEMOGRAMA | Estado: Exame Concluído
+[2026-04-06 19:17:55] PID: 2 | Nome: MARIA COSTA GOMES | Exame: TAC ABDOMINAL | Estado: Exame Concluído
+[2026-04-06 19:22:52] PID: 2 | Nome: MARIA COSTA GOMES | Exame: RAIO-X TORAX | Estado: Cancelado
+[2026-04-06 19:30:49] PID: 1 | Nome: SARA ANTUNES FERREIRA PINTO | Exame: URINA | Estado: Exame Concluído
+[2026-04-06 19:31:43] PID: 1 | Nome: SARA ANTUNES FERREIRA PINTO | Exame: URINA | Estado: Exame Concluído
+[2026-04-06 19:36:18] PID: 2 | Nome: MARIA COSTA GOMES | Exame: HEMOGRAMA | Estado: Exame Concluído
+[2026-04-06 19:39:08] PID: 2 | Nome: MARIA COSTA GOMES | Exame: RAIO-X TORAX | Estado: Exame Concluído
+[2026-04-06 19:52:56] PID: 2 | Nome: MARIA COSTA GOMES | Exame: TAC ABDOMINAL | Estado: Exame Concluído
