@@ -420,9 +420,8 @@ def iniciar_programa_b():
                         print(f" Novo paciente {pid} detetado no pedido → a criar automaticamente.")
                     else:
                         print(f" Paciente {pid} já existe → dados podem ser atualizados.")
-                        
-                    # Criar ou atualizar paciente automaticamente com os dados do pedido
-                    pacientes[pid] = {
+
+                    pacientes[pid] = {  
                         "nome": dados_lidos["nome"],
                         "nasc": dados_lidos["nasc"],
                         "sexo": dados_lidos["sexo"],

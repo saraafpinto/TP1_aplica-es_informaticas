@@ -509,22 +509,29 @@ if __name__ == "__main__":
         opcao = input("Escolhe uma opção: ")
 
         if opcao == "1":
+            # 1. Pedir os dados ao utilizador
             meus_dados = pedir_dados_pedido()
             
-            # Gerar IDs únicos AGORA e guardar no dicionário
+            # 2. Gerar IDs únicos AGORA e guardar no dicionário
             meus_dados['id_pedido'] = f"REQ{random.randint(1000,9999)}"
             meus_dados['id_episodio'] = f"EP{random.randint(100,999)}"
             meus_dados['estado'] = "Ativo"
             meus_dados['data_criacao'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # Guardar o pedido no JSON local do Programa A
-            pedidos_sistema = carregar_pedidos()
-            pedidos_sistema[meus_dados['id_pedido']] = meus_dados
-            guardar_pedidos_aida(pedidos_sistema)
-
-            # Criar e enviar a mensagem
+            # 3. Criar a mensagem HL7 (aqui ele verifica se o utente existe no JSON)
             msg = criar_pedido_hl7("requisicao", meus_dados)
-            enviar_pedido(msg)
+            
+            # 4. Verificar se a mensagem é um erro (paciente não existe)
+            if msg.startswith("Erro"):
+                print(f"\n{msg}")
+                print("Operação cancelada. Faça a admissão do paciente primeiro.")
+            else:
+                # 5. Se NÃO for erro, guarda no JSON local e envia para o Mirth
+                pedidos_sistema = carregar_pedidos()
+                pedidos_sistema[meus_dados['id_pedido']] = meus_dados
+                guardar_pedidos_aida(pedidos_sistema)
+                
+                enviar_pedido(msg)
             
         elif opcao == "2":
             id_pac = input_nao_vazio("\nInsira o ID do Paciente para procurar exames: ")

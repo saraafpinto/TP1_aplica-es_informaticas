@@ -1,8 +1,5 @@
 [2026-04-01 20:58:39] PID: 1 | Nome: HELENA | Exame: TAC ABDOMINAL | Estado: Exame Concluído
 [2026-04-02 00:42:12] PID: 3 | Nome: PAULA | Exame: HEMOGRAMA | Estado: Exame Concluído
-<<<<<<< HEAD
-[2026-04-06 19:58:49] PID: 3 | Nome: PAULA | Exame: RAIO-X TORAX | Estado: Exame Concluído
-=======
 [2026-04-06 19:17:55] PID: 2 | Nome: MARIA COSTA GOMES | Exame: TAC ABDOMINAL | Estado: Exame Concluído
 [2026-04-06 19:22:52] PID: 2 | Nome: MARIA COSTA GOMES | Exame: RAIO-X TORAX | Estado: Cancelado
 [2026-04-06 19:30:49] PID: 1 | Nome: SARA ANTUNES FERREIRA PINTO | Exame: URINA | Estado: Exame Concluído
@@ -14,4 +11,6 @@
 [2026-04-06 20:43:43] PID: 4 | Nome: ANA | Exame: RAIO-X TORAX | Estado: Cancelado
 [2026-04-06 20:50:25] PID: 5 | Nome: JOANA | Exame: HEMOGRAMA | Estado: Exame Concluído
 [2026-04-06 20:58:26] PID: 6 | Nome: RICARDO | Exame: HEMOGRAMA | Estado: Exame Concluído
->>>>>>> 34e78c63c2b69d436351e03d96f6295afa76f485
+[2026-04-06 22:06:30] PID: 1 | Nome: PINTO^JOAO^^ | Exame: TAC ABDOMINAL | Estado: Exame Concluído
+[2026-04-06 22:30:48] PID: 7 | Nome: SILVA^JOAO^^ | Exame: TAC ABDOMINAL | Estado: Exame Concluído
+[2026-04-06 22:31:00] PID: 7 | Nome: SILVA^JOAO^^ | Exame: TAC ABDOMINAL | Estado: Cancelado

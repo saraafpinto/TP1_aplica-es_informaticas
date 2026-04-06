@@ -37,5 +37,32 @@
         "id_episodio": "EP999",
         "estado": "Ativo",
         "data_criacao": "2026-04-06 20:58:24"
+    },
+    "REQ2473": {
+        "id_pac": "9",
+        "cod_exame": "TAC01",
+        "exame": "TAC ABDOMINAL",
+        "id_pedido": "REQ2473",
+        "id_episodio": "EP566",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-06 22:05:05"
+    },
+    "REQ5103": {
+        "id_pac": "1",
+        "cod_exame": "TAC01",
+        "exame": "TAC ABDOMINAL",
+        "id_pedido": "REQ5103",
+        "id_episodio": "EP981",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-06 22:06:30"
+    },
+    "REQ5130": {
+        "id_pac": "7",
+        "cod_exame": "TAC01",
+        "exame": "TAC ABDOMINAL",
+        "id_pedido": "REQ5130",
+        "id_episodio": "EP831",
+        "estado": "Cancelado",
+        "data_criacao": "2026-04-06 22:30:48"
     }
 }
