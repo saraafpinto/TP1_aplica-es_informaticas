@@ -40,6 +40,28 @@ MLLP_START = b"\x0b"
 MLLP_END = b"\x1c\x0d"
 
 #==============================================
+# BASE DE DADOS DO AIDA (Para guardar os pedidos feitos)
+#==============================================
+
+import json
+import os
+
+FICHEIRO_PEDIDOS = "pedidos.json"
+
+def carregar_pedidos():
+    if not os.path.exists(FICHEIRO_PEDIDOS):
+        return {}
+    try:
+        with open(FICHEIRO_PEDIDOS, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+def guardar_pedidos_aida(pedidos):
+    with open(FICHEIRO_PEDIDOS, "w", encoding="utf-8") as f:
+        json.dump(pedidos, f, indent=4)
+
+#==============================================
 # FUNCAO PARA CRIAR UMA MENSAGEM HL7 DE PEDIDO
 #==============================================
 
@@ -481,20 +503,60 @@ if __name__ == "__main__":
         opcao = input("Escolhe uma opção: ")
 
         if opcao == "1":
-            # Pedir os dados
-            dados_pedido = pedir_dados_pedido()
-            # 2. Gerar a mensagem passando esses dados
-            msg = criar_pedido_hl7("requisicao", dados_pedido)
-            # 3. Enviar
+            meus_dados = pedir_dados_pedido()
+            
+            # Gerar IDs únicos AGORA e guardar no dicionário
+            meus_dados['id_pedido'] = f"REQ{random.randint(1000,9999)}"
+            meus_dados['id_episodio'] = f"EP{random.randint(100,999)}"
+            meus_dados['estado'] = "Ativo"
+            meus_dados['data_criacao'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Guardar o pedido no JSON local do Programa A
+            pedidos_sistema = carregar_pedidos()
+            pedidos_sistema[meus_dados['id_pedido']] = meus_dados
+            guardar_pedidos_aida(pedidos_sistema)
+
+            # Criar e enviar a mensagem
+            msg = criar_pedido_hl7("requisicao", meus_dados)
             enviar_pedido(msg)
             
         elif opcao == "2":
-            # 1. Pedir os dados (para saber qual paciente cancelar)
-            dados_pedido = pedir_dados_pedido()
-            # 2. Gerar a mensagem de cancelamento
-            msg = criar_pedido_hl7("cancelar", dados_pedido)
-            # 3. Enviar
-            enviar_pedido(msg)
+            id_pac = input_nao_vazio("\nInsira o ID do Paciente para procurar exames: ")
+            pedidos_sistema = carregar_pedidos()
+
+            # Filtrar apenas os pedidos "Ativos" deste paciente
+            pedidos_ativos = {k: v for k, v in pedidos_sistema.items() if v.get('id_pac') == id_pac and v.get('estado') == "Ativo"}
+
+            if not pedidos_ativos:
+                print(f"\n Não foram encontrados exames ativos para o paciente com ID '{id_pac}'.")
+            else:
+                print(f"\n--- EXAMES ATIVOS PARA O PACIENTE {id_pac} ---")
+                lista_ids = list(pedidos_ativos.keys())
+                
+                # Listar os exames encontrados
+                for i, p_id in enumerate(lista_ids, 1):
+                    p_info = pedidos_ativos[p_id]
+                    print(f"{i}. [{p_id}] {p_info['exame']} (Pedido em: {p_info['data_criacao']})")
+
+                escolha = input("\nEscolha o número do exame a cancelar (ou 0 para voltar): ").strip()
+
+                if escolha.isdigit() and 1 <= int(escolha) <= len(lista_ids):
+                    id_escolhido = lista_ids[int(escolha)-1]
+                    pedido_a_cancelar = pedidos_ativos[id_escolhido]
+
+                    # Envia a mensagem de cancelamento com os dados originais exatos
+                    msg = criar_pedido_hl7("cancelar", pedido_a_cancelar)
+                    enviar_pedido(msg)
+
+                    # Atualiza o estado no JSON do AIDA para não voltar a aparecer na lista
+                    pedidos_sistema[id_escolhido]['estado'] = "Cancelado"
+                    guardar_pedidos_aida(pedidos_sistema)
+                    
+                    print(f"\n Exame {id_escolhido} cancelado com sucesso no sistema.")
+                elif escolha == "0":
+                    print("Cancelamento abortado.")
+                else:
+                    print(" Opção inválida!")
         elif opcao == "3":
             # 1. Pedir dados específicos de admissão
             dados_adm = pedir_dados_admissao()
