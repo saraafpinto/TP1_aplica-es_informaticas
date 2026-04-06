@@ -162,7 +162,9 @@ def gerar_resposta_B(fluxo, dados, tipo_mensagem="ORM^O01"):
         'confirmar_cancelamento': {'acao': 'CA', 'estado': 'CA', 'prefixo': 'CONF'},
         'exame_finalizado':       {'acao': 'SC', 'estado': 'CM', 'prefixo': 'STAT'},
         'colheita':               {'acao': 'SC', 'estado': 'HC', 'prefixo': 'COLH'},
-        'processamento':          {'acao': 'SC', 'estado': 'IP', 'prefixo': 'PROC'}
+        'processamento':          {'acao': 'SC', 'estado': 'IP', 'prefixo': 'PROC'},
+        'confirmar_admissao':     {'acao': 'AA', 'estado': 'AD', 'prefixo': 'ADM'},
+        'confirmar_fusao':        {'acao': 'AA', 'estado': 'FS', 'prefixo': 'FUS'}
     }
 
     config = estados.get(fluxo)
@@ -176,7 +178,7 @@ def gerar_resposta_B(fluxo, dados, tipo_mensagem="ORM^O01"):
             emissor=emissor,
             recetor=recetor,
             data_hoje=data_hoje,
-            tipo=tipo_mensagem, # Aqui entra ORM^O01 ou OML^O21
+            tipo=tipo_mensagem,
             msg_id=msg_id,
             id_paciente=dados["pid"],
             nome_paciente=dados["nome"],
@@ -185,13 +187,13 @@ def gerar_resposta_B(fluxo, dados, tipo_mensagem="ORM^O01"):
             nif=dados.get("nif", ""),
             tipo_paciente=dados.get("tipo_pac", "I"), 
             setor=dados.get("setor", "RAD"),           
-            id_episodio=dados.get("episodio", ""),
+            id_episodio=dados.get("episodio", "EP000"), # valor padrão se não houver
             acao=config['acao'],
-            estado=config['estado'], # Garante que o template tem o campo {estado} no ORC
-            id_pedido=dados["id_pedido"],
+            estado=config['estado'],
+            id_pedido=dados.get("id_pedido", "N/A"),
             data_pedido=data_hoje,
-            cod_exame=dados["cod_exame"],
-            desc_exame=dados["desc_exame"],
+            cod_exame=dados.get("cod_exame", "ADM"),
+            desc_exame=dados.get("desc_exame", "CONFIRMACAO"),
             extra_obr="|"
         )
         return mensagem
@@ -296,9 +298,6 @@ def enviar_relatorio_para_mirth(relatorio):
     # envolve mensagem com mLLP
     pacote = envolver_mllp(relatorio)
 
-    #Debug: mostra primeiros bytes enviados
-    print("DEBUG bytes enviados para Mirth:", pacote[:10])
-
     # cria socket cliente TCP
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as cliente:
 
@@ -380,25 +379,31 @@ def iniciar_programa_b():
                         print(f"A remover ID antigo: {id_antigo}")
                         if id_antigo in pacientes:
                             del pacientes[id_antigo]
-                        print(f"A associar dados ao ID principal: {pid_principal}")
+                            print(f"A associar dados ao ID principal: {pid_principal}")
+                        guardar_pacientes(pacientes)
+                        msg_relatorio = gerar_resposta_B('confirmar_fusao', dados_lidos, "ACK^A40")
                         
-                    elif subtipo == "A08":
+                        
+                    elif subtipo in ["A01", "A08"]:
                         # LÓGICA A08: ATUALIZAÇÃO
-                        print(f"--- ATUALIZAÇÃO (A08) ---")
+                        print(f"--- ADMISSÃO/ATUALIZAÇÃO ({subtipo}) ---")
                         print(f"A atualizar dados do paciente: {pid_principal}")
 
-                    # Em ambos os casos, guardamos/atualizamos o registo principal
-                    pacientes[pid_principal] = {
-                        "nome": dados_lidos["nome"],
-                        "nasc": dados_lidos["nasc"],
-                        "sexo": dados_lidos["sexo"],
-                        "nif": dados_lidos["nif"]
-                    }
-                    guardar_pacientes(pacientes)
-                    print(f"✔ JSON atualizado com sucesso para {dados_lidos['nome']}.\n")
+                        # Proteção: Só gravamos se o nome não for o marcador de fusão
+                        if dados_lidos["nome"] != "FUSAO DE REGISTO":
+                            pacientes[pid_principal] = {
+                                "nome": dados_lidos["nome"],
+                                "nasc": dados_lidos["nasc"],
+                                "sexo": dados_lidos["sexo"],
+                                "nif": dados_lidos["nif"],
+                                "morada": dados_lidos["morada"]
+                            }
+                            guardar_pacientes(pacientes)
+                            print(f"✔ JSON atualizado para o ID {pid_principal}.")
+                            msg_relatorio = gerar_resposta_B('confirmar_admissao', dados_lidos, f"ACK^{subtipo}")
                     
                     # Como não queres ACK, fazemos apenas 'continue' para esperar a próxima mensagem
-                    continue
+                    
             
                 # --- CENÁRIO: CANCELAMENTO (ORM-CA) ---
                 elif acao == "CA":
@@ -421,7 +426,7 @@ def iniciar_programa_b():
                         "nome": dados_lidos["nome"],
                         "nasc": dados_lidos["nasc"],
                         "sexo": dados_lidos["sexo"],
-                        "nif": dados_lidos["nif"] if dados_lidos["nif"] else pacientes[pid].get("nif", ""),
+                        "nif": dados_lidos["nif"],
                         "morada": dados_lidos["morada"]
                     }
 
