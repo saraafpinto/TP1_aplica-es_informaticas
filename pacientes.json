@@ -1,8 +1,26 @@
 {
-    "3": {
-        "nome": "PAULA",
-        "nasc": "19900610",
+    "4": {
+        "nome": "SARA PINTO",
+        "nasc": "20040524",
+        "sexo": "M",
+        "nif": ""
+    },
+    "5": {
+        "nome": "PINTO^RITA^^",
+        "nasc": "20080519",
         "sexo": "F",
+        "nif": ""
+    },
+    "6": {
+        "nome": "PINTO^PAULO^^",
+        "nasc": "19721106",
+        "sexo": "M",
+        "nif": ""
+    },
+    "7": {
+        "nome": "FUSAO DE REGISTO",
+        "nasc": "",
+        "sexo": "",
         "nif": ""
     }
 }

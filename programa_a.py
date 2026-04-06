@@ -10,6 +10,7 @@ import time
 #Importa datetime para obter data e hora atuais
 from datetime import datetime
 import random
+import json
 
 #===============================
 # CONFIGURAÇÃO DE LIGAÇÃO AO MIRTH
@@ -92,32 +93,129 @@ def pedir_dados_admissao():
     print(" DADOS PARA ADMISSÃO DO PACIENTE")
     print("-"*30)
 
+    catalogo = {
+        "1": {"nome": "Criar Novo Paciente", "evento": "A01"}, # A01 ou A08
+        "2": {"nome": "Atualizar Paciente", "evento": "A08"},
+        "3": {"nome": "Fundir Pacientes", "evento": "A40"}
+    }
+
+    tipo_adm = {
+        "1": {"nome": "Urgente", "evento": "URG"}, # A01 ou A08
+        "2": {"nome": "Internamento", "evento": "INT"},
+        "3": {"nome": "Externo", "evento": "EXT"}
+    }
+
+    print("\n--- OPERAÇÕES DISPONÍVEIS ---")
+    for chave, info in catalogo.items():
+        print(f"{chave}. {info['nome']}")
+
+    while True:
+        escolha = input("\nEscolha a operação: ").strip()
+        if escolha in catalogo:
+            operacao = catalogo[escolha]
+            break
+        print("Escolha inválida!")
+
     dados = {}
 
-    dados['tipo'] = input_opcao(
-        "Tipo de Evento (A08 / A40): ", ["A08", "A40"]
-    )
+    dados['tipo'] = operacao['evento']
 
-    dados['id_principal'] = input_nao_vazio("ID/Processo Principal: ")
+    if escolha == "3":
+        print("\n[MODO FUSÃO] Introduza apenas os identificadores:")
+        dados['id_principal'] = input_nao_vazio("ID Destino (O que FICA): ")
+        dados['id_antigo'] = input_nao_vazio("ID Antigo (O que vai ser ELIMINADO/FUNDIDO): ")
+        
+        # Preenchemos o resto com "N/A" ou vazio para não dar erro no template
+        dados.update({
+            'nome': "FUSAO DE REGISTO", 'nasc': "", 'sexo': "", 
+            'nif': "", 'morada': "", 'tipo_adm': "EXT"
+        })
+        return dados
+
+    # ==========================================================
+    # CASO A01 / A08: PRECISA DOS DADOS COMPLETOS
+    # ==========================================================
+    if escolha == "1":
+        print("ID: Será gerado automaticamente.")
+        dados['id_principal'] = ""
+    else:
+        dados['id_principal'] = input_nao_vazio("ID do Paciente: ")
 
     dados['id_antigo'] = ""
-    if dados['tipo'] == "A40":
-        dados['id_antigo'] = input_nao_vazio("ID Antigo para Fusão: ")
-
-    dados['nome'] = input_nao_vazio("Nome Completo: ").upper()
+    # Dentro da função pedir_dados_admissao
+    apelidos = input_nao_vazio("Apelidos: ").upper()
+    nomes_proprios = input_nao_vazio("Nomes Próprios: ").upper()
+    # Juntamos no formato HL7: APELIDO^NOME^^
+    dados['nome'] = f"{apelidos}^{nomes_proprios}^^"
     dados['nasc'] = input_data("Data Nascimento (AAAAMMDD): ")
     dados['sexo'] = input_sexo()
     dados['nif'] = input_nif()
     dados['morada'] = input_nao_vazio("Morada: ").upper()
+    for chave, info in tipo_adm.items():
+        print(f"{chave}. {info['nome']}")
 
-    dados['tipo_adm'] = input_opcao(
-        "Tipo Admissão (URG/INT/EXT): ", ["URG", "INT", "EXT"]
-    )
+    while True:
+        escolha_tipo = input("Escolha o tipo de admissão: ").strip()
+        if escolha_tipo in tipo_adm:
+            dados['tipo_adm'] = tipo_adm[escolha_tipo]['evento']
+            break
+        print("Escolha inválida!")
 
     return dados
 
+def registar_paciente_json(dados_adm):
+    caminho_arquivo = 'pacientes.json'
+    try:
+        with open(caminho_arquivo, 'r', encoding='utf-8') as f:
+            base_pacientes = json.load(f)
+    except:
+        base_pacientes = {}
 
+    id_evento = dados_adm.get('tipo')
+
+    # --- CASO A40: APAGAR O ANTIGO ---
+    if id_evento == "A40":
+        id_old = str(dados_adm.get('id_antigo'))
+        if id_old in base_pacientes:
+            del base_pacientes[id_old]
+        
+        with open(caminho_arquivo, 'w', encoding='utf-8') as f:
+            json.dump(base_pacientes, f, indent=4)
+        return dados_adm.get('id_principal')
+
+    # --- CASO A01/A08: CRIAR OU ATUALIZAR ---
+    id_atual = str(dados_adm.get('id_principal', "")).strip()
+    
+    if id_atual == "" or id_atual == "0":
+        if base_pacientes:
+            novo_id = str(max(int(k) for k in base_pacientes.keys()) + 1)
+        else:
+            novo_id = "1"
+    else:
+        novo_id = id_atual
+
+    # VERIFICAÇÃO DE SEGURANÇA: Só grava se os dados não forem os "vazios" da fusão
+    if dados_adm['nome'] != "FUSAO DE REGISTO":
+        base_pacientes[novo_id] = {
+            "nome": dados_adm['nome'],
+            "nasc": dados_adm['nasc'],
+            "sexo": dados_adm['sexo'],
+            "nif": dados_adm.get('nif', ""),      # Garante que lê a chave 'nif'
+            "morada": dados_adm.get('morada', "") # Garante que lê a chave 'morada'
+        }
+
+    with open(caminho_arquivo, 'w', encoding='utf-8') as f:
+        json.dump(base_pacientes, f, indent=4, ensure_ascii=False)
+    
+    # Atualiza o dicionário original para o HL7 levar o ID certo
+    dados_adm['id_principal'] = novo_id
+    return novo_id
+    
 def criar_admissao_hl7(dados_manuais):
+    novo_id = registar_paciente_json(dados_manuais)
+    if not novo_id:
+        return "Erro: Não foi possível registar o paciente no JSON."
+
     # Lógica para o segmento MRG (exclusivo de admissões A40)
     if dados_manuais['tipo'] == "A40":
         conteudo_mrg = f"MRG|{dados_manuais['id_antigo']}|\n" 
@@ -133,7 +231,7 @@ def criar_admissao_hl7(dados_manuais):
         tipo_evento=dados_manuais['tipo'],
         data_hoje=datetime.now().strftime("%Y%m%d%H%M"),
         msg_id=f"ADM{random.randint(1000,9999)}",
-        id_principal=dados_manuais['id_principal'],
+        id_principal=novo_id,
         nome=dados_manuais['nome'],
         nasc=dados_manuais['nasc'],
         sexo=dados_manuais['sexo'],
@@ -160,11 +258,7 @@ def pedir_dados_pedido():
 
     dados = {}
 
-    dados['nome'] = input_nao_vazio("Nome Completo: ").upper()
     dados['id_pac'] = input_nao_vazio("ID do Paciente: ")
-    dados['nif'] = input_nif()
-    dados['nasc'] = input_data("Data Nascimento (AAAAMMDD): ")
-    dados['sexo'] = input_sexo()
 
     print("\n--- EXAMES DISPONÍVEIS ---")
     for chave, info in catalogo.items():
@@ -186,7 +280,25 @@ def criar_pedido_hl7(fluxo, dados_manuais):
     fluxo: 'requisicao' ou 'cancelar'
     dados_manuais: Dicionário com nome, id, nasc, sexo, etc., vindos do input()
     """
+
+    id_alvo = str(dados_manuais['id_pac'])
+    
+    # --- PASSO 1: Procurar info extra do paciente no JSON ---
+    try:
+        with open('pacientes.json', 'r', encoding='utf-8') as f:
+            base_pacientes = json.load(f)
+        
+        # Procura o paciente pelo ID
+        paciente = base_pacientes.get(id_alvo)
+        
+        if not paciente:
+            return f"Erro: Paciente com ID {id_alvo} não encontrado no sistema (JSON)."
+            
+    except FileNotFoundError:
+        return "Erro: Ficheiro pacientes.json não encontrado."
+    
     emissor, recetor = "AIDA", "PACS"
+    
     if dados_manuais['cod_exame'].startswith("ANAL"):
         tipo_msg = "OML^O21"
     else:
@@ -206,34 +318,33 @@ def criar_pedido_hl7(fluxo, dados_manuais):
     try:
         with open('mensagens/Pedido.txt', 'r', encoding='utf-8') as f:
             template = f.read()
-    except FileNotFoundError:
-        return "Erro: Ficheiro mensagens/Pedido.txt não encontrado."
 
-    # 4. Preencher o template com os DADOS DA DORA + Lógica do Sistema
-    mensagem_final = template.format(
-        emissor=emissor,
-        recetor=recetor,
-        data_hoje=data_atual,
-        tipo=tipo_msg,          # Mantemos automático conforme o teu pedido
-        msg_id=msg_id,
-        id_paciente=dados_manuais['id_pac'],    # DINÂMICO
-        nome_paciente=dados_manuais['nome'],    # DINÂMICO
-        data_nasc=dados_manuais['nasc'],        # DINÂMICO
-        sexo=dados_manuais['sexo'],              # DINÂMICO
-        nif=dados_manuais['nif'],                # DINÂMICO
-        tipo_paciente="I",      
-        setor="INT",            
-        id_episodio=f"EP{random.randint(100,999)}", # Gerado na hora
-        acao=acao,                               # Automático (NW ou CA)
-        estado="",              
-        id_pedido=f"REQ{random.randint(1000,9999)}", # ID de pedido único
-        data_pedido=data_atual,
-        cod_exame=dados_manuais['cod_exame'],
-        desc_exame=dados_manuais['exame'],      # DINÂMICO
-        extra_obr=extra_obr
-    )
+        mensagem_final = template.format(
+            emissor=emissor,
+            recetor=recetor,
+            data_hoje=data_atual,
+            tipo=tipo_msg,
+            msg_id=msg_id,
+            id_paciente=id_alvo,       # Do JSON
+            nome_paciente=paciente['nome'],   # Do JSON
+            data_nasc=paciente['nasc'],       # Do JSON
+            sexo=paciente['sexo'],           # Do JSON
+            nif=paciente['nif'],             # Do JSON
+            tipo_paciente="I",      
+            setor="INT",            
+            id_episodio=f"EP{random.randint(100,999)}",
+            acao=acao,
+            estado="",              
+            id_pedido=f"REQ{random.randint(1000,9999)}",
+            data_pedido=data_atual,
+            cod_exame=dados_manuais['cod_exame'], # Do MENU
+            desc_exame=dados_manuais['exame'],     # Do MENU
+            extra_obr=extra_obr
+        )
+        return mensagem_final
 
-    return mensagem_final
+    except Exception as e:
+        return f"Erro ao gerar HL7: {e}"
 
 #==============================================
 # FUNCAO PARA ENVOLVER A MENSAGEM COM MLLP
@@ -321,9 +432,6 @@ def enviar_pedido(mensagem):
     # envolve a mensagem com MLLP
     pacote = envolver_mllp(mensagem)
 
-    # debug: mostra primeiros bytes enviados
-    print("DEBUG bytes enviados:", pacote[:10])
-
     #cria socket TCP cliente
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as cliente:
 
@@ -373,18 +481,18 @@ if __name__ == "__main__":
         opcao = input("Escolhe uma opção: ")
 
         if opcao == "1":
-            # 1. Pedir os dados à Dora
-            meus_dados = pedir_dados_pedido()
+            # Pedir os dados
+            dados_pedido = pedir_dados_pedido()
             # 2. Gerar a mensagem passando esses dados
-            msg = criar_pedido_hl7("requisicao", meus_dados)
+            msg = criar_pedido_hl7("requisicao", dados_pedido)
             # 3. Enviar
             enviar_pedido(msg)
             
         elif opcao == "2":
             # 1. Pedir os dados (para saber qual paciente cancelar)
-            meus_dados = pedir_dados_pedido()
+            dados_pedido = pedir_dados_pedido()
             # 2. Gerar a mensagem de cancelamento
-            msg = criar_pedido_hl7("cancelar", meus_dados)
+            msg = criar_pedido_hl7("cancelar", dados_pedido)
             # 3. Enviar
             enviar_pedido(msg)
         elif opcao == "3":
