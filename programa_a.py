@@ -173,6 +173,8 @@ def pedir_dados_admissao():
     dados['sexo'] = input_sexo()
     dados['nif'] = input_nif()
     dados['morada'] = input_nao_vazio("Morada: ").upper()
+
+    print("\n--- TIPOS DE ADMISSÃO ---")
     for chave, info in tipo_adm.items():
         print(f"{chave}. {info['nome']}")
 
@@ -205,27 +207,31 @@ def registar_paciente_json(dados_adm):
             json.dump(base_pacientes, f, indent=4)
         return dados_adm.get('id_principal')
 
-    # --- CASO A01/A08: CRIAR OU ATUALIZAR ---
-    id_atual = str(dados_adm.get('id_principal', "")).strip()
-    
-    if id_atual == "" or id_atual == "0":
-        if base_pacientes:
-            novo_id = str(max(int(k) for k in base_pacientes.keys()) + 1)
-        else:
-            novo_id = "1"
     else:
-        novo_id = id_atual
+            id_input = str(dados_adm.get('id_principal', "")).strip()
+            
+            # Gerar ID se estiver vazio
+            if id_input == "" or id_input == "0":
+                if base_pacientes:
+                    novo_id = str(max(int(k) for k in base_pacientes.keys()) + 1)
+                else:
+                    novo_id = "1"
+            else:
+                novo_id = id_input
 
-    # VERIFICAÇÃO DE SEGURANÇA: Só grava se os dados não forem os "vazios" da fusão
-    if dados_adm['nome'] != "FUSAO DE REGISTO":
-        base_pacientes[novo_id] = {
-            "nome": dados_adm['nome'],
-            "nasc": dados_adm['nasc'],
-            "sexo": dados_adm['sexo'],
-            "nif": dados_adm.get('nif', ""),      # Garante que lê a chave 'nif'
-            "morada": dados_adm.get('morada', "") # Garante que lê a chave 'morada'
-        }
-
+            # Criar o objeto do paciente com TODOS os campos
+            # Usamos .get para garantir que se algo falhar, não crasha
+            base_pacientes[novo_id] = {
+                "nome": dados_adm.get('nome', ""),
+                "nasc": dados_adm.get('nasc', ""),
+                "sexo": dados_adm.get('sexo', ""),
+                "nif": dados_adm.get('nif', ""),
+                "morada": dados_adm.get('morada', "")
+            }
+            
+            # Atualizar o dicionário original para o HL7 levar o ID final
+            dados_adm['id_principal'] = novo_id
+            
     with open(caminho_arquivo, 'w', encoding='utf-8') as f:
         json.dump(base_pacientes, f, indent=4, ensure_ascii=False)
     

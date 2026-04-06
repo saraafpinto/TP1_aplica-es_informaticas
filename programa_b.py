@@ -124,7 +124,7 @@ def processar_pedido_hl7(mensagem):
     dados = {
         "acao": "", "pid": "", "nome": "", "nasc": "", "sexo": "", 
         "nif": "", "tipo_pac": "", "setor": "", "episodio": "", 
-        "id_pedido": "", "cod_exame": "", "desc_exame": ""
+        "id_pedido": "", "cod_exame": "", "desc_exame": "", "morada": ""
     }
 
     for linha in linhas:
@@ -133,6 +133,7 @@ def processar_pedido_hl7(mensagem):
             dados["nome"] = extrair_campo(linha, 5)
             dados["nasc"] = extrair_campo(linha, 7)
             dados["sexo"] = extrair_campo(linha, 8)
+            dados["morada"] = extrair_campo(linha, 11)
             dados["nif"] = extrair_campo(linha, 18)
         elif linha.startswith("PV1"):
             dados["tipo_pac"] = extrair_campo(linha, 2)
@@ -420,7 +421,8 @@ def iniciar_programa_b():
                         "nome": dados_lidos["nome"],
                         "nasc": dados_lidos["nasc"],
                         "sexo": dados_lidos["sexo"],
-                        "nif": dados_lidos["nif"]
+                        "nif": dados_lidos["nif"] if dados_lidos["nif"] else pacientes[pid].get("nif", ""),
+                        "morada": dados_lidos["morada"]
                     }
 
                     guardar_pacientes(pacientes)
