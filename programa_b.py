@@ -401,9 +401,6 @@ def iniciar_programa_b():
                             guardar_pacientes(pacientes)
                             print(f"✔ JSON atualizado para o ID {pid_principal}.")
                             msg_relatorio = gerar_resposta_B('confirmar_admissao', dados_lidos, f"ACK^{subtipo}")
-                    
-                    # Como não queres ACK, fazemos apenas 'continue' para esperar a próxima mensagem
-                    
             
                 # --- CENÁRIO: CANCELAMENTO (ORM-CA) ---
                 elif acao == "CA":
