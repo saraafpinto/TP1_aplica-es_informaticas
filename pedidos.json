@@ -262,5 +262,14 @@
         "id_episodio": "EP372",
         "estado": "Ativo",
         "data_criacao": "2026-04-07 20:14:47"
+    },
+    "REQ7638": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ7638",
+        "id_episodio": "EP293",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 20:18:15"
     }
 }
