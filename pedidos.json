@@ -64,5 +64,41 @@
         "id_episodio": "EP831",
         "estado": "Cancelado",
         "data_criacao": "2026-04-06 22:30:48"
+    },
+    "REQ2474": {
+        "id_pac": "8",
+        "cod_exame": "TAC01",
+        "exame": "TAC ABDOMINAL",
+        "id_pedido": "REQ2474",
+        "id_episodio": "EP494",
+        "estado": "Cancelado",
+        "data_criacao": "2026-04-07 17:45:06"
+    },
+    "REQ7584": {
+        "id_pac": "9",
+        "cod_exame": "M10405",
+        "exame": "RAIO-X TORAX",
+        "id_pedido": "REQ7584",
+        "id_episodio": "EP670",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 18:04:21"
+    },
+    "REQ1276": {
+        "id_pac": "9",
+        "cod_exame": "ANAL02",
+        "exame": "URINA",
+        "id_pedido": "REQ1276",
+        "id_episodio": "EP520",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:23:17"
+    },
+    "REQ6345": {
+        "id_pac": "5",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ6345",
+        "id_episodio": "EP895",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:44:53"
     }
 }

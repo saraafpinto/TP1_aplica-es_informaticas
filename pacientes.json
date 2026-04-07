@@ -28,5 +28,19 @@
         "nasc": "20000909",
         "sexo": "M",
         "nif": ""
+    },
+    "8": {
+        "nome": "OLIVEIRA^SOFIA^^",
+        "nasc": "19990719",
+        "sexo": "F",
+        "nif": "688998886",
+        "morada": ""
+    },
+    "9": {
+        "nome": "SANTOS^RITA^^",
+        "nasc": "20000706",
+        "sexo": "F",
+        "nif": "123546321",
+        "morada": ""
     }
 }
