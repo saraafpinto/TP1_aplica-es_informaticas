@@ -2,6 +2,9 @@ import socket
 from datetime import datetime
 import random
 import time
+import json
+import os
+
 
 #===============================
 #CONFIGURAÇÃO DO SERVIDOR LOCAL
@@ -17,7 +20,7 @@ PORTA_RECEBER_PEDIDO = 6000
 # CONFIGURAÇÃO DE LIGAÇÃO AO MIRTH
 #===============================
 
-# enderco IP do mirth
+# endereco IP do mirth
 MIRTH_HOST = "127.0.0.1"
 MIRTH_PORTA_RELATORIO = 5101
 
@@ -59,9 +62,6 @@ def remover_mllp(dados):
 # GUARDAR OS PACIENTES
 #==============================================
 
-import json
-import os
-
 FICHEIRO_PACIENTES = "pacientes.json"
 
 def carregar_pacientes():
@@ -78,7 +78,7 @@ def guardar_pacientes(pacientes):
         json.dump(pacientes, f, indent=4)
 
 #==============================================
-# FUNCAO PARA GUARDAR HISTORICO (BASE DE DADOS SIMULADA)
+# FUNCAO PARA GUARDAR HISTORICO 
 #==============================================
 
 def guardar_historico(dados, estado="Concluído"):
@@ -97,21 +97,6 @@ def extrair_campo(segmento, indice):
 
     # devolver o campor pretendido se existir
     return partes[indice] if len(partes) > indice else ""
-
-
-#==============================================
-# FUNCAO para criar relatorio hl7
-#==============================================
-
-def criar_relatorio_hl7(pid, nome, exame):
-    agora = datetime.now().strftime("%Y%m%d%H%M%S")
-
-    return (
-        f"MSH|^~\\&|ProgramaB|Laboratorio|Mirth|Clinica|{agora}||ORU^R01|RPT001|P|2.3\r"
-        f"PID|1||{pid}||{nome}||19800101|M\r"
-        f"OBR|1||EX001|{exame}|{agora}\r"
-        f"OBX|1|TX|RESULTADO||Exame realizado com sucesso. Valores dentro da normalidade. |N\r"
-    )
 
 
 #==============================================
@@ -157,7 +142,7 @@ def gerar_resposta_B(fluxo, dados, tipo_mensagem="ORM^O01"):
     emissor, recetor = "PACS", "AIDA"
     data_hoje = datetime.now().strftime("%Y%m%d%H%M%S")
     
-    # Dicionário de estados para facilitar a lógica
+    # Dicionário de estados 
     estados = {
         'confirmar_cancelamento': {'acao': 'CA', 'estado': 'CA', 'prefixo': 'CONF'},
         'exame_finalizado':       {'acao': 'SC', 'estado': 'CM', 'prefixo': 'STAT'},
@@ -187,7 +172,7 @@ def gerar_resposta_B(fluxo, dados, tipo_mensagem="ORM^O01"):
             nif=dados.get("nif", ""),
             tipo_paciente=dados.get("tipo_pac", "I"), 
             setor=dados.get("setor", "RAD"),           
-            id_episodio=dados.get("episodio", "EP000"), # valor padrão se não houver
+            id_episodio=dados.get("episodio", "EP000"), 
             acao=config['acao'],
             estado=config['estado'],
             id_pedido=dados.get("id_pedido", "N/A"),
@@ -209,8 +194,7 @@ def gerar_relatorio_B(dados, formato="texto_longo"):
     emissor, recetor = "PACS", "AIDA"
     msg_id = f"RPT_{data_atual}{random.randint(10,99)}"
     
-    # --- 1. DEFINIÇÃO DOS CONTEÚDOS POR EXAME ---
-    # Podes adicionar quantos códigos quiseres aqui
+    # --- DEFINIÇÃO DOS CONTEÚDOS POR EXAME ---
     biblioteca_laudos = {
         "M10405": {
             "titulo": "RAIO-X AO TÓRAX (PA/PERFIL)",
@@ -243,9 +227,8 @@ def gerar_relatorio_B(dados, formato="texto_longo"):
         }
     }
 
-    # --- 2. SELEÇÃO DO CONTEÚDO ---
+    # --- SELEÇÃO DO CONTEÚDO ---
     codigo = dados.get("cod_exame", "")
-    # Se o código existir na biblioteca, usa. Senão, usa um padrão genérico.
     laudo_selecionado = biblioteca_laudos.get(codigo, {
         "titulo": "RELATÓRIO DE EXAME GERAL",
         "linhas": ["Exame realizado com sucesso.", "Sem observações críticas a registar."],
@@ -290,11 +273,15 @@ def gerar_relatorio_B(dados, formato="texto_longo"):
     except Exception as e:
         print(f"Erro ao gerar relatório: {e}")
         return None
+    
 #==============================================
 # FUNCAO PARA ENVIAR RELATÓRIO para o mirth
 #==============================================
 
 def enviar_relatorio_para_mirth(relatorio):
+    if not relatorio:
+        print("Aviso: Relatório vazio, nada para enviar.")
+        return
     # envolve mensagem com mLLP
     pacote = envolver_mllp(relatorio)
 
@@ -347,7 +334,7 @@ def iniciar_programa_b():
                 print(dados)
                 print("===========================================\n")
 
-                # 1. Identificar Tipo e Ação
+                # Identificar Tipo e Ação
                 linhas = dados.strip().split("\r")
                 tipo_msg = extrair_campo(linhas[0], 8) 
                 dados_lidos = processar_pedido_hl7(dados)
@@ -355,8 +342,6 @@ def iniciar_programa_b():
                 
                 msg_relatorio = None # Variável para guardar o relatório final
 
-                # 2. Lógica de Resposta
-                
                 # --- CENÁRIO: ADMISSÃO (ADT) ---
                 if "ADT" in tipo_msg:
                     subtipo = ""
@@ -389,7 +374,7 @@ def iniciar_programa_b():
                         print(f"--- ADMISSÃO/ATUALIZAÇÃO ({subtipo}) ---")
                         print(f"A atualizar dados do paciente: {pid_principal}")
 
-                        # Proteção: Só gravamos se o nome não for o marcador de fusão
+                        # Proteção: Só grava se o nome não for o marcador de fusão
                         if dados_lidos["nome"] != "FUSAO DE REGISTO":
                             pacientes[pid_principal] = {
                                 "nome": dados_lidos["nome"],
@@ -399,16 +384,17 @@ def iniciar_programa_b():
                                 "morada": dados_lidos["morada"]
                             }
                             guardar_pacientes(pacientes)
-                            print(f"✔ JSON atualizado para o ID {pid_principal}.")
+                            print(f" JSON atualizado para o ID {pid_principal}.")
                             msg_relatorio = gerar_resposta_B('confirmar_admissao', dados_lidos, f"ACK^{subtipo}")
+                                        
             
                 # --- CENÁRIO: CANCELAMENTO (ORM-CA) ---
-                elif acao == "CA":
+                elif acao == "Cancelamento":
                     print("-> OPERAÇÃO: Cancelamento. Enviando Confirmação...")
                     msg_relatorio = gerar_resposta_B('confirmar_cancelamento', dados_lidos, tipo_msg)
 
                 # --- CENÁRIO: NOVO PEDIDO (NW) ---
-                elif acao == "NW":
+                elif acao == "Novo pedido":
                     pacientes = carregar_pacientes()
 
                     pid = dados_lidos["pid"]
@@ -428,36 +414,43 @@ def iniciar_programa_b():
 
                     guardar_pacientes(pacientes)
 
-                    print("-> OPERAÇÃO: Novo Pedido. Iniciando fluxo...")
-                    
-                    # PASSO 1: Enviar Estados Intermédios
+                    print("\n -> OPERAÇÃO: Novo Pedido. Iniciando fluxo...")
+                    nome_exame_original = dados_lidos.get("desc_exame", "Exame")
+                    # Enviar Estados Intermédios
                     if "OML" in tipo_msg:
-                        # Fluxo de Laboratório
+                        # Fluxo de Laboratório - simular os tempos de envio
+                        print(f"\n -> A enviar estado: COLHEITA")
+                        dados_lidos["desc_exame"] = f"COLHEITA: {nome_exame_original}"
                         enviar_relatorio_para_mirth(gerar_resposta_B('colheita', dados_lidos, "OML^O21"))
                         time.sleep(0.5)
+                        print(f"-> A enviar estado: PROCESSAMENTO")
+                        dados_lidos["desc_exame"] = f"PROCESSAMENTO: {nome_exame_original}"
                         enviar_relatorio_para_mirth(gerar_resposta_B('processamento', dados_lidos, "OML^O21"))
                         time.sleep(0.5)
+                        print(f"-> A enviar estado: EXAME FINALIZADO")
+                        dados_lidos["desc_exame"] = f"FINALIZADO: {nome_exame_original}"
                         enviar_relatorio_para_mirth(gerar_resposta_B('exame_finalizado', dados_lidos, "OML^O21"))
                     else:
                         # Fluxo de Radiologia
+                        dados_lidos["desc_exame"] = nome_exame_original
                         enviar_relatorio_para_mirth(gerar_resposta_B('exame_finalizado', dados_lidos, "ORM^O01"))
 
                     time.sleep(0.5)
 
-                    # PASSO 2: Decidir qual Relatório (OBX) gerar usando a nova função
-                    print("   - Gerando conteúdo do Relatório Final...")
+                    # Decidir qual Relatório (OBX) gerar 
+                    print("   - A gerar conteúdo do Relatório Final...")
                     
-                    # Deixa a função decidir tudo sozinha com base no dicionário que criámos
+                    # a função decide sozinha com base no dicionário criado
                     msg_relatorio = gerar_relatorio_B(dados_lidos)
 
-                # 3. Envio Final (Confirmação de Cancelamento OU Relatório de Resultados)
+                # Envio Final (Confirmação de Cancelamento OU Relatório de Resultados)
                 if msg_relatorio:
                     print("\n ====== Enviando Resposta Final ======= ")
                     print(msg_relatorio)
                     print("===========================================\n")
                     enviar_relatorio_para_mirth(msg_relatorio)
 
-                    # 4. GUARDAR NA "BASE DE DADOS"
+                    # GUARDAR NA "BASE DE DADOS"
                     if acao == "NW":
                         guardar_historico(dados_lidos, estado="Exame Concluído")
                         print("-> [REGISTO] Exame guardado na base de dados (historico_exames.txt).")

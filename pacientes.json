@@ -2,7 +2,7 @@
     "1": {
         "nome": "PINTO^JOAO^^",
         "nasc": "20000909",
-        "sexo": "M",
+        "sexo": "Masculino",
         "nif": "123456789",
         "morada": ""
     },
@@ -16,13 +16,6 @@
     "3": {
         "nome": "GOMES^MARIA^^",
         "nasc": "20040909",
-        "sexo": "F",
-        "nif": "123456789",
-        "morada": "RUA 123"
-    },
-    "8": {
-        "nome": "PINTO^RITA^^",
-        "nasc": "20040519",
         "sexo": "F",
         "nif": "123456789",
         "morada": "RUA 123"

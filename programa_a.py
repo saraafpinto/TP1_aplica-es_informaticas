@@ -1,16 +1,10 @@
-#importa o modulo socket, que permite comunicação em rede (TCP/IP)
 import socket
-
-#importa o módulo threading para executar tarefas em paralelo (multithreading)
 import threading
-
-#importa o módulo time para controlo de pausas/temporização
 import time
-
-#Importa datetime para obter data e hora atuais
 from datetime import datetime
 import random
 import json
+import os
 
 #===============================
 # CONFIGURAÇÃO DE LIGAÇÃO AO MIRTH
@@ -42,9 +36,6 @@ MLLP_END = b"\x1c\x0d"
 #==============================================
 # BASE DE DADOS DO AIDA (Para guardar os pedidos feitos)
 #==============================================
-
-import json
-import os
 
 FICHEIRO_PEDIDOS = "pedidos.json"
 
@@ -116,13 +107,13 @@ def pedir_dados_admissao():
     print("-"*30)
 
     catalogo = {
-        "1": {"nome": "Criar Novo Paciente", "evento": "A01"}, # A01 ou A08
+        "1": {"nome": "Criar Novo Paciente", "evento": "A01"}, 
         "2": {"nome": "Atualizar Paciente", "evento": "A08"},
         "3": {"nome": "Fundir Pacientes", "evento": "A40"}
     }
 
     tipo_adm = {
-        "1": {"nome": "Urgente", "evento": "URG"}, # A01 ou A08
+        "1": {"nome": "Urgente", "evento": "URG"}, 
         "2": {"nome": "Internamento", "evento": "INT"},
         "3": {"nome": "Externo", "evento": "EXT"}
     }
@@ -147,7 +138,6 @@ def pedir_dados_admissao():
         dados['id_principal'] = input_nao_vazio("ID Destino (O que FICA): ")
         dados['id_antigo'] = input_nao_vazio("ID Antigo (O que vai ser ELIMINADO/FUNDIDO): ")
         
-        # Preenchemos o resto com "N/A" ou vazio para não dar erro no template
         dados.update({
             'nome': "FUSAO DE REGISTO", 'nasc': "", 'sexo': "", 
             'nif': "", 'morada': "", 'tipo_adm': "EXT"
@@ -210,7 +200,7 @@ def registar_paciente_json(dados_adm):
     else:
             id_input = str(dados_adm.get('id_principal', "")).strip()
             
-            # Gerar ID se estiver vazio
+            # Gera ID se estiver vazio
             if id_input == "" or id_input == "0":
                 if base_pacientes:
                     novo_id = str(max(int(k) for k in base_pacientes.keys()) + 1)
@@ -219,8 +209,7 @@ def registar_paciente_json(dados_adm):
             else:
                 novo_id = id_input
 
-            # Criar o objeto do paciente com TODOS os campos
-            # Usamos .get para garantir que se algo falhar, não crasha
+            # Cria o objeto do paciente com todos os campos
             base_pacientes[novo_id] = {
                 "nome": dados_adm.get('nome', ""),
                 "nasc": dados_adm.get('nasc', ""),
@@ -229,13 +218,11 @@ def registar_paciente_json(dados_adm):
                 "morada": dados_adm.get('morada', "")
             }
             
-            # Atualizar o dicionário original para o HL7 levar o ID final
             dados_adm['id_principal'] = novo_id
             
     with open(caminho_arquivo, 'w', encoding='utf-8') as f:
         json.dump(base_pacientes, f, indent=4, ensure_ascii=False)
     
-    # Atualiza o dicionário original para o HL7 levar o ID certo
     dados_adm['id_principal'] = novo_id
     return novo_id
     
@@ -311,7 +298,7 @@ def criar_pedido_hl7(fluxo, dados_manuais):
 
     id_alvo = str(dados_manuais['id_pac'])
     
-    # --- PASSO 1: Procurar info extra do paciente no JSON ---
+    # --- Procurar info extra do paciente no JSON ---
     try:
         with open('pacientes.json', 'r', encoding='utf-8') as f:
             base_pacientes = json.load(f)
@@ -342,7 +329,7 @@ def criar_pedido_hl7(fluxo, dados_manuais):
     data_atual = datetime.now().strftime("%Y%m%d%H%M%S")
     msg_id = f"A_{data_atual}{random.randint(10, 99)}"
 
-    # 3. Ler o ficheiro de template
+    # Ler o ficheiro
     try:
         with open('mensagens/Pedido.txt', 'r', encoding='utf-8') as f:
             template = f.read()
@@ -442,10 +429,11 @@ def escutar_relatorio():
                     # se ja recebeu o terminador MLLP, pode parar
                     if MLLP_END in buffer:
                         break
-
+            
+            dados_recebidos = remover_mllp(buffer)
             # mostra
             print("\n======== Relatorio final recebido =======")
-            print(remover_mllp(buffer))
+            print(dados_recebidos.replace('\r', '\n'))
             print("===========================================")
 
 #==============================================
@@ -493,7 +481,7 @@ if __name__ == "__main__":
     #pequena pausa para garantir que o servidr ja esta pronto
     time.sleep(1)
 
-    # O NOSSO MENU INTERATIVO
+    # MENU INTERATIVO
     while True:
         print("\n" + "="*45)
         print(" MENU PRINCIPAL - SISTEMA DE PEDIDOS (AIDA)")
@@ -507,24 +495,24 @@ if __name__ == "__main__":
         opcao = input("Escolhe uma opção: ")
 
         if opcao == "1":
-            # 1. Pedir os dados ao utilizador
+            # Pedir os dados ao utilizador
             meus_dados = pedir_dados_pedido()
             
-            # 2. Gerar IDs únicos AGORA e guardar no dicionário
+            # Gerar IDs únicos agora e guardar no dicionário
             meus_dados['id_pedido'] = f"REQ{random.randint(1000,9999)}"
             meus_dados['id_episodio'] = f"EP{random.randint(100,999)}"
             meus_dados['estado'] = "Ativo"
             meus_dados['data_criacao'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            # 3. Criar a mensagem HL7 (aqui ele verifica se o utente existe no JSON)
+            # Criar a mensagem HL7 (verifica se o utente existe no JSON)
             msg = criar_pedido_hl7("requisicao", meus_dados)
             
-            # 4. Verificar se a mensagem é um erro (paciente não existe)
+            # Verificar se a mensagem é um erro (paciente não existe)
             if msg.startswith("Erro"):
                 print(f"\n{msg}")
                 print("Operação cancelada. Faça a admissão do paciente primeiro.")
             else:
-                # 5. Se NÃO for erro, guarda no JSON local e envia para o Mirth
+                # Se nao for erro, guarda no JSON local e envia para o Mirth
                 pedidos_sistema = carregar_pedidos()
                 pedidos_sistema[meus_dados['id_pedido']] = meus_dados
                 guardar_pedidos_aida(pedidos_sistema)
@@ -563,7 +551,7 @@ if __name__ == "__main__":
                     print("\n === Pedido HL7 ENVIADO ======")
                     enviar_pedido(msg)
 
-                    # Atualiza o estado no JSON do AIDA para não voltar a aparecer na lista
+                    # Atualiza o estado no JSON para não voltar a aparecer na lista
                     pedidos_sistema[id_escolhido]['estado'] = "Cancelado"
                     guardar_pedidos_aida(pedidos_sistema)
                     
@@ -573,13 +561,11 @@ if __name__ == "__main__":
                 else:
                     print(" Opção inválida!")
         elif opcao == "3":
-            # 1. Pedir dados específicos de admissão
+            # Pedir dados específicos de admissão
             dados_adm = pedir_dados_admissao()
-            # 2. Gerar a mensagem com esses dados
+            # Gerar a mensagem com esses dados
             msg = criar_admissao_hl7(dados_adm)
-            # 3. Enviar para o Mirth
-            print("\nAdmissão enviada para o Mirth com sucesso.")
-            print("\n === ADMISSÃO HL7 ENVIADA ======")
+            # Enviar para o Mirth
             enviar_pedido(msg)
         elif opcao == "0":
             print("A encerrar o Programa A...")

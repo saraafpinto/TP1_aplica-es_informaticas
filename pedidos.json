@@ -145,5 +145,122 @@
         "id_episodio": "EP810",
         "estado": "Ativo",
         "data_criacao": "2026-04-07 19:22:05"
+    },
+    "REQ3811": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ3811",
+        "id_episodio": "EP913",
+        "estado": "Cancelado",
+        "data_criacao": "2026-04-07 19:28:29"
+    },
+    "REQ6276": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ6276",
+        "id_episodio": "EP403",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:32:01"
+    },
+    "REQ1042": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ1042",
+        "id_episodio": "EP396",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:33:28"
+    },
+    "REQ4735": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ4735",
+        "id_episodio": "EP795",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:36:43"
+    },
+    "REQ7322": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ7322",
+        "id_episodio": "EP393",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:43:18"
+    },
+    "REQ1529": {
+        "id_pac": "1",
+        "cod_exame": "TAC01",
+        "exame": "TAC ABDOMINAL",
+        "id_pedido": "REQ1529",
+        "id_episodio": "EP850",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:46:11"
+    },
+    "REQ6189": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ6189",
+        "id_episodio": "EP194",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:48:58"
+    },
+    "REQ8744": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ8744",
+        "id_episodio": "EP969",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:53:07"
+    },
+    "REQ5650": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ5650",
+        "id_episodio": "EP630",
+        "estado": "Cancelado",
+        "data_criacao": "2026-04-07 19:54:47"
+    },
+    "REQ8152": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ8152",
+        "id_episodio": "EP729",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 19:56:46"
+    },
+    "REQ3806": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ3806",
+        "id_episodio": "EP943",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 20:03:32"
+    },
+    "REQ2589": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ2589",
+        "id_episodio": "EP327",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 20:10:37"
+    },
+    "REQ7162": {
+        "id_pac": "1",
+        "cod_exame": "ANAL01",
+        "exame": "HEMOGRAMA",
+        "id_pedido": "REQ7162",
+        "id_episodio": "EP372",
+        "estado": "Ativo",
+        "data_criacao": "2026-04-07 20:14:47"
     }
 }
