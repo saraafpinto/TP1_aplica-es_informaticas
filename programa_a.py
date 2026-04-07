@@ -429,10 +429,11 @@ def escutar_relatorio():
                     # se ja recebeu o terminador MLLP, pode parar
                     if MLLP_END in buffer:
                         break
-
+            
+            dados_recebidos = remover_mllp(buffer)
             # mostra
             print("\n======== Relatorio final recebido =======")
-            print(remover_mllp(buffer))
+            print(dados_recebidos.replace('\r', '\n'))
             print("===========================================")
 
 #==============================================
@@ -457,8 +458,6 @@ def enviar_pedido(mensagem):
         cliente.sendall(pacote)
 
     #mensagens informativas
-    print("\nPedido enviado para o Mirth com sucesso.")
-    print("\n === Pedido HL7 ENVIADO ======")
     print(mensagem)
     print("===========================================")
 
@@ -518,6 +517,8 @@ if __name__ == "__main__":
                 pedidos_sistema[meus_dados['id_pedido']] = meus_dados
                 guardar_pedidos_aida(pedidos_sistema)
                 
+                print("\nPedido enviado para o Mirth com sucesso.")
+                print("\n === Pedido HL7 ENVIADO ======")
                 enviar_pedido(msg)
             
         elif opcao == "2":
@@ -546,6 +547,8 @@ if __name__ == "__main__":
 
                     # Envia a mensagem de cancelamento com os dados originais exatos
                     msg = criar_pedido_hl7("cancelar", pedido_a_cancelar)
+                    print("\nPedido enviado para o Mirth com sucesso.")
+                    print("\n === Pedido HL7 ENVIADO ======")
                     enviar_pedido(msg)
 
                     # Atualiza o estado no JSON para não voltar a aparecer na lista

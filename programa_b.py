@@ -279,6 +279,9 @@ def gerar_relatorio_B(dados, formato="texto_longo"):
 #==============================================
 
 def enviar_relatorio_para_mirth(relatorio):
+    if not relatorio:
+        print("Aviso: Relatório vazio, nada para enviar.")
+        return
     # envolve mensagem com mLLP
     pacote = envolver_mllp(relatorio)
 
@@ -339,8 +342,6 @@ def iniciar_programa_b():
                 
                 msg_relatorio = None # Variável para guardar o relatório final
 
-                # Lógica de Resposta
-
                 # --- CENÁRIO: ADMISSÃO (ADT) ---
                 if "ADT" in tipo_msg:
                     subtipo = ""
@@ -388,12 +389,12 @@ def iniciar_programa_b():
                                         
             
                 # --- CENÁRIO: CANCELAMENTO (ORM-CA) ---
-                elif acao == "CA":
+                elif acao == "Cancelamento":
                     print("-> OPERAÇÃO: Cancelamento. Enviando Confirmação...")
                     msg_relatorio = gerar_resposta_B('confirmar_cancelamento', dados_lidos, tipo_msg)
 
                 # --- CENÁRIO: NOVO PEDIDO (NW) ---
-                elif acao == "NW":
+                elif acao == "Novo pedido":
                     pacientes = carregar_pacientes()
 
                     pid = dados_lidos["pid"]
@@ -413,18 +414,25 @@ def iniciar_programa_b():
 
                     guardar_pacientes(pacientes)
 
-                    print("-> OPERAÇÃO: Novo Pedido. Iniciando fluxo...")
-                    
+                    print("\n -> OPERAÇÃO: Novo Pedido. Iniciando fluxo...")
+                    nome_exame_original = dados_lidos.get("desc_exame", "Exame")
                     # Enviar Estados Intermédios
                     if "OML" in tipo_msg:
                         # Fluxo de Laboratório - simular os tempos de envio
+                        print(f"\n -> A enviar estado: COLHEITA")
+                        dados_lidos["desc_exame"] = f"COLHEITA: {nome_exame_original}"
                         enviar_relatorio_para_mirth(gerar_resposta_B('colheita', dados_lidos, "OML^O21"))
                         time.sleep(0.5)
+                        print(f"-> A enviar estado: PROCESSAMENTO")
+                        dados_lidos["desc_exame"] = f"PROCESSAMENTO: {nome_exame_original}"
                         enviar_relatorio_para_mirth(gerar_resposta_B('processamento', dados_lidos, "OML^O21"))
                         time.sleep(0.5)
+                        print(f"-> A enviar estado: EXAME FINALIZADO")
+                        dados_lidos["desc_exame"] = f"FINALIZADO: {nome_exame_original}"
                         enviar_relatorio_para_mirth(gerar_resposta_B('exame_finalizado', dados_lidos, "OML^O21"))
                     else:
                         # Fluxo de Radiologia
+                        dados_lidos["desc_exame"] = nome_exame_original
                         enviar_relatorio_para_mirth(gerar_resposta_B('exame_finalizado', dados_lidos, "ORM^O01"))
 
                     time.sleep(0.5)

@@ -2,14 +2,16 @@
     "1": {
         "nome": "PINTO^JOAO^^",
         "nasc": "20000909",
-        "sexo": "M",
-        "nif": ""
+        "sexo": "Masculino",
+        "nif": "123456789",
+        "morada": ""
     },
     "2": {
         "nome": "OLIVEIRA^HELENA^^",
         "nasc": "20040909",
         "sexo": "F",
-        "nif": ""
+        "nif": "123456789",
+        "morada": "RUA 123"
     },
     "3": {
         "nome": "GOMES^MARIA^^",
